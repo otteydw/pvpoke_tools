@@ -30,12 +30,14 @@ oldname="$1"
 newname="$2"
 
 # Default pretty names: capitalize first letter
+# shellcheck disable=SC2086
 oldpretty_default="$(tr '[:lower:]' '[:upper:]' <<<${oldname:0:1})${oldname:1}"
+# shellcheck disable=SC2086
 newpretty_default="$(tr '[:lower:]' '[:upper:]' <<<${newname:0:1})${newname:1}"
 
 # Prompt user for pretty names with defaults
-read -e -i "$oldpretty_default" -p "Enter the OLD pretty name: " oldpretty
-read -e -i "$newpretty_default" -p "Enter the NEW pretty name: " newpretty
+read -r -e -i "$oldpretty_default" -p "Enter the OLD pretty name: " oldpretty
+read -r -e -i "$newpretty_default" -p "Enter the NEW pretty name: " newpretty
 
 echo "Renaming cup:"
 echo "  codename: $oldname -> $newname"

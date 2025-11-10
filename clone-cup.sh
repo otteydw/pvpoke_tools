@@ -30,11 +30,13 @@ old="$1"
 new="$2"
 
 # Default pretty names: capitalize first letter
+# shellcheck disable=SC2086
 oldpretty_default="$(tr '[:lower:]' '[:upper:]' <<<${old:0:1})${old:1}"
+# shellcheck disable=SC2086
 newpretty_default="$(tr '[:lower:]' '[:upper:]' <<<${new:0:1})${new:1}"
 
-read -e -i "$oldpretty_default" -p "OLD pretty name (just for confirmation): " oldpretty
-read -e -i "$newpretty_default" -p "NEW pretty name (shown in UI): " newpretty
+read -r -e -i "$oldpretty_default" -p "OLD pretty name (just for confirmation): " oldpretty
+read -r -e -i "$newpretty_default" -p "NEW pretty name (shown in UI): " newpretty
 
 echo ""
 echo "Cloning cup:"
