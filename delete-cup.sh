@@ -5,9 +5,9 @@ set -euo pipefail
 root="${PVPOKE_SRC_ROOT:-/var/www/builder.devon.gg/public_html/pvpoke/src}"
 
 # Confirm the root directory exists
-if [[ ! -d "$root" ]]; then
-    echo "Error: root directory '$root' does not exist."
-    exit 1
+if [[ ! -d $root ]]; then
+  echo "Error: root directory '$root' does not exist."
+  exit 1
 fi
 
 echo "Using root directory: $root"
@@ -33,38 +33,38 @@ echo ""
 
 # --- 1. Remove directories if they exist ---
 for dir in "overrides/$cup" "rankings/$cup"; do
-    if [[ -d "${root}/data/$dir" ]]; then
-        echo "Removing directory: $dir"
-        rm -rf "${root}/data/$dir"
-    else
-        echo "Directory not found, skipping: $dir"
-    fi
+  if [[ -d "${root}/data/$dir" ]]; then
+    echo "Removing directory: $dir"
+    rm -rf "${root}/data/$dir"
+  else
+    echo "Directory not found, skipping: $dir"
+  fi
 done
 
 # --- 2. Remove cup JSON ---
 cup_json="${root}/data/gamemaster/cups/${cup}.json"
-if [[ -f "$cup_json" ]]; then
-    echo "Removing file: gamemaster/cups/${cup}.json"
-    rm "$cup_json"
+if [[ -f $cup_json ]]; then
+  echo "Removing file: gamemaster/cups/${cup}.json"
+  rm "$cup_json"
 else
-    echo "Cup JSON not found, skipping: ${cup}.json"
+  echo "Cup JSON not found, skipping: ${cup}.json"
 fi
 
 # --- 3. Remove group JSON if exists ---
 group_json="${root}/data/groups/${cup}.json"
-if [[ -f "$group_json" ]]; then
-    echo "Removing file: groups/${cup}.json"
-    rm "$group_json"
+if [[ -f $group_json ]]; then
+  echo "Removing file: groups/${cup}.json"
+  rm "$group_json"
 fi
 
 # --- 4. Remove entry from formats.json ---
 formats_json="${root}/data/gamemaster/formats.json"
-if [[ -f "$formats_json" ]]; then
-    echo "Removing entry from formats.json"
-    jq --tab --arg cup "$cup" 'map(select(.cup != $cup))' "$formats_json" \
-       > "${formats_json}.tmp" && mv "${formats_json}.tmp" "$formats_json"
+if [[ -f $formats_json ]]; then
+  echo "Removing entry from formats.json"
+  jq --tab --arg cup "$cup" 'map(select(.cup != $cup))' "$formats_json" \
+    >"${formats_json}.tmp" && mv "${formats_json}.tmp" "$formats_json"
 else
-    echo "formats.json not found, skipping removal from formats.json"
+  echo "formats.json not found, skipping removal from formats.json"
 fi
 
 echo ""
