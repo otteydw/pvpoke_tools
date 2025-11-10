@@ -9,16 +9,16 @@
 webrt="/var/www/builder.devon.gg/public_html/pvpoke/src"
 
 # Get current timestamp for backups and logging
-date=`date +"%Y%m%d-%H:%M:%S"`
+date=$(date +"%Y%m%d-%H:%M:%S")
 
 # ---------------------------------------------
 # Step 1: Gather meta name and title from the user
 # ---------------------------------------------
 echo -n "Enter the name of the meta:"
-read name  # internal codename (usually lowercase)
+read name # internal codename (usually lowercase)
 sleep 1s
 echo -n "Enter the title of the meta:"
-read title  # "pretty" name, typically capitalized
+read title # "pretty" name, typically capitalized
 sleep 1s
 echo "I am now creating the Gamemaster Cup File $name.json for you ..."
 sleep 2s
@@ -30,7 +30,7 @@ touch ${webrt}/data/gamemaster/cups/${name}.json
 echo -n "Enter the json structure for the meta:"
 read cup
 # Append user-provided JSON structure to the file
-cat <<< "$cup" >> ${webrt}/data/gamemaster/cups/${name}.json
+cat <<<"$cup" >>${webrt}/data/gamemaster/cups/${name}.json
 
 # Replace placeholders in JSON with actual codename and title
 rpl -w "custom" "$name" ${webrt}/data/gamemaster/cups/${name}.json
@@ -71,7 +71,7 @@ rpl -w "great" "$name" ${webrt}/data/gamemaster/formats-bu/formats-${name}-new.j
 # ---------------------------------------------
 echo "Adding the new meta to formats.json in gamemaster, creating a backup ..."
 sleep 2s
-cat ${webrt}/data/gamemaster/formats-bu/formats-${name}-new.json >> ${webrt}/data/gamemaster/formats-bu/formats-${name}-all.json
+cat ${webrt}/data/gamemaster/formats-bu/formats-${name}-new.json >>${webrt}/data/gamemaster/formats-bu/formats-${name}-all.json
 
 # Backup current formats.json
 mv ${webrt}/data/gamemaster/formats.json ${webrt}/data/gamemaster/formats-bu/formats-${date}.json
@@ -86,11 +86,11 @@ echo "Removing temporary files and finalizing formats-all.json ..."
 sleep 2s
 
 # Remove the last line twice to prevent duplicate closing braces
-head -n -1 ${webrt}/data/gamemaster/formats-bu/formats-${name}-all.json > ${webrt}/data/gamemaster/formats-bu/formats-temp1.json
-head -n -1 ${webrt}/data/gamemaster/formats-bu/formats-temp1.json > ${webrt}/data/gamemaster/formats-bu/formats-temp2.json
+head -n -1 ${webrt}/data/gamemaster/formats-bu/formats-${name}-all.json >${webrt}/data/gamemaster/formats-bu/formats-temp1.json
+head -n -1 ${webrt}/data/gamemaster/formats-bu/formats-temp1.json >${webrt}/data/gamemaster/formats-bu/formats-temp2.json
 
 # Add a comma to allow further meta entries
-echo "        }," >> ${webrt}/data/gamemaster/formats-bu/formats-temp2.json
+echo "        }," >>${webrt}/data/gamemaster/formats-bu/formats-temp2.json
 
 # Replace formats-all.json with the cleaned-up version
 mv ${webrt}/data/gamemaster/formats-bu/formats-temp2.json ${webrt}/data/gamemaster/formats-all.json
@@ -109,7 +109,7 @@ sleep 2s
 echo "Creating empty group file for Multi Battle/Matrix battle ..."
 sleep 2s
 touch ${webrt}/data/groups/${name}.json
-echo "[]" >> ${webrt}/data/groups/${name}.json
+echo "[]" >>${webrt}/data/groups/${name}.json
 
 echo "Remember to edit the group JSON later via Custom Rankings > Export > JSON ..."
 sleep 2s
@@ -121,7 +121,7 @@ echo -n "Enter the CP (500, 1500, 2500, 10000) for this cup:"
 read cp
 mkdir -p ${webrt}/data/overrides/${name}
 touch ${webrt}/data/overrides/${name}/${cp}.json
-echo "[]" >> ${webrt}/data/overrides/${name}/${cp}.json
+echo "[]" >>${webrt}/data/overrides/${name}/${cp}.json
 echo "Edit the $cp.json file with overrides as needed and run the ranker after changes."
 
 # ---------------------------------------------
@@ -133,7 +133,7 @@ mkdir -p ${webrt}/data/rankings/${name}/{attackers,chargers,closers,consistency,
 
 # Initialize ranking files with empty JSON arrays
 for folder in attackers chargers closers consistency leads overall switches; do
-  echo "[]" >> ${webrt}/data/rankings/${name}/${folder}/rankings-${cp}.json
+  echo "[]" >>${webrt}/data/rankings/${name}/${folder}/rankings-${cp}.json
 done
 
 echo "All necessary files are now created. Compile, create groups, import movesets, and run ranker/sandbox."
