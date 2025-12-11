@@ -45,15 +45,15 @@ case "$league" in
 *) league_name="Custom(${league})" ;;
 esac
 
-# Locate overrides file
-overrides="${webrt}/data/overrides/${cup}/${league}.json"
-if [[ ! -f $overrides ]]; then
-  echo "Error: overrides file not found: $overrides"
+# Locate overall rankings file
+rankings="${webrt}/data/rankings/${cup}/overall/rankings-${league}.json"
+if [[ ! -f $rankings ]]; then
+  echo "Error: rankings file not found: $rankings"
   exit 1
 fi
 
 # Extract speciesIds and join into comma-separated list
-allowedMons=$(jq -r 'map(.speciesId) | join(", ")' "$overrides")
+allowedMons=$(jq -r 'map(.speciesId) | sort | join(", ")' "$rankings")
 
 # Build output JSON
 cat <<EOF
