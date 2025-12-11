@@ -23,8 +23,19 @@ if [[ ! -f $cupfile ]]; then
 fi
 
 # Extract league and title from cup file
-league=$(jq -r '.league' "$cupfile")
-title=$(jq -r '.title' "$cupfile")
+league=$(jq -r '.league // empty' "$cupfile")
+title=$(jq -r '.title // empty' "$cupfile")
+
+# Validate required fields
+if [ -z "$league" ]; then
+  echo "ERROR: Missing or empty 'league' in $cupfile" >&2
+  exit 1
+fi
+
+if [ -z "$title" ]; then
+  echo "ERROR: Missing or empty 'title' in $cupfile" >&2
+  exit 1
+fi
 
 # Map league numbers to names
 case "$league" in
