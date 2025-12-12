@@ -52,6 +52,13 @@ if [[ ! -f $rankings ]]; then
   exit 1
 fi
 
+# -- Output useful info to stderr
+pokemon_count=$(jq 'length' "$rankings")
+echo "INFO: Using cup file: ${cupfile}" >&2
+echo "INFO: Using rankings file: ${rankings}" >&2
+echo "INFO: Found ${pokemon_count} Pokémon in rankings." >&2
+# --
+
 # Extract speciesIds and join into comma-separated list
 allowedMons=$(jq -r 'map(.speciesId) | sort | join(", ")' "$rankings")
 
