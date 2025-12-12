@@ -40,4 +40,5 @@ zip -r "${name}.zip" "${name}"
 zip_path="${filedrop}/${name}.zip"
 zip_url="${uri_root}/${name}.zip"
 echo
-echo "Zip file available at ${zip_path} and ${zip_url}"
+echo "Local zip file: ${zip_path}"
+echo "Web URL: ${zip_url}"
