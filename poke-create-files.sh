@@ -18,7 +18,7 @@ usage() {
   echo "  -h, --help              Display this help message and exit."
   echo ""
   echo "Environment Variables:"
-  echo "  webrt                   (Optional) Override the default root path for PvPoke source files."
+  echo "  PVPOKE_SRC_ROOT         (Optional) Override the default root path for PvPoke source files."
   echo "                          Default: /var/www/builder.devon.gg/public_html/pvpoke/src"
   echo ""
   echo "Reference: https://github.com/pvpoke/pvpoke/wiki/Creating-New-Cups-&-Rankings"
@@ -64,7 +64,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Set the root path for the PvPoke source files
-webrt="${webrt:-/var/www/builder.devon.gg/public_html/pvpoke/src}"
+webrt="${PVPOKE_SRC_ROOT:-/var/www/builder.devon.gg/public_html/pvpoke/src}"
 
 # Get current timestamp for backups and logging
 date=$(date +"%Y%m%d-%H:%M:%S")

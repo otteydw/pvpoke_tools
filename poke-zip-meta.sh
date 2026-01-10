@@ -9,7 +9,7 @@ command -v zip >/dev/null 2>&1 || {
   exit 1
 }
 
-webrt="${webrt:-/var/www/builder.devon.gg/public_html/pvpoke/src}"
+webrt="${PVPOKE_SRC_ROOT:-/var/www/builder.devon.gg/public_html/pvpoke/src}"
 filedrop="${FILEDROP:-$(dirname "$webrt")/filedrop}"
 uri_root="${PVPOKE_FILEDROP_URI:-https://builder.devon.gg/pvpoke/filedrop}"
 

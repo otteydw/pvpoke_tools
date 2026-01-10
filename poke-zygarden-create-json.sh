@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-webrt="${webrt:-/var/www/builder.devon.gg/public_html/pvpoke/src}"
+webrt="${PVPOKE_SRC_ROOT:-/var/www/builder.devon.gg/public_html/pvpoke/src}"
 
 # Ensure jq is installed
 if ! command -v jq >/dev/null 2>&1; then
