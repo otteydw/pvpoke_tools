@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 webrt="${webrt:-/var/www/builder.devon.gg/public_html/pvpoke/src}"

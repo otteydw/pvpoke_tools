@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 # This script generates the files required to build a custom PvPoke meta
 # Reference: https://github.com/pvpoke/pvpoke/wiki/Creating-New-Cups-&-Rankings
 # ---------------------------------------------------------------
