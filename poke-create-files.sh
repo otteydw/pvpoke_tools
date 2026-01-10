@@ -14,10 +14,10 @@ date=$(date +"%Y%m%d-%H:%M:%S")
 # ---------------------------------------------
 # Step 1: Gather meta name and title from the user
 # ---------------------------------------------
-echo -n "Enter the name of the meta:"
+echo -n "Enter the name of the meta: "
 read -r name # internal codename (usually lowercase)
 sleep 1s
-echo -n "Enter the title of the meta:"
+echo -n "Enter the title of the meta: "
 read -r title # "pretty" name, typically capitalized
 sleep 1s
 echo "I am now creating the Gamemaster Cup File $name.json for you ..."
@@ -27,7 +27,7 @@ sleep 2s
 # Step 2: Create the Gamemaster Cup JSON file
 # ---------------------------------------------
 touch ${webrt}/data/gamemaster/cups/"${name}".json
-echo -n "Enter the json structure for the meta:"
+echo -n "Enter the json structure for the meta (must be a single line): "
 read -r cup
 # Append user-provided JSON structure to the file
 cat <<<"$cup" >>${webrt}/data/gamemaster/cups/"${name}".json
@@ -117,7 +117,7 @@ sleep 2s
 # ---------------------------------------------
 # Step 8: Create empty Moveset Override JSON
 # ---------------------------------------------
-echo -n "Enter the CP (500, 1500, 2500, 10000) for this cup:"
+echo -n "Enter the CP (500, 1500, 2500, 10000) for this cup: "
 read -r cp
 mkdir -p ${webrt}/data/overrides/"${name}"
 touch ${webrt}/data/overrides/"${name}"/"${cp}".json
