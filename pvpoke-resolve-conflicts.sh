@@ -1,11 +1,24 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Ensure script is run as root
+# Use environment variable PVPOKE_ROOT if set, otherwise default
+PVPOKE_ROOT="${PVPOKE_ROOT:-/var/www/builder.devon.gg/public_html/pvpoke}"
+
+# CAVEAT: This script needs to be run as root because of the web server's
+# configuration, which requires git to be run as the root user.
 if [ "$EUID" -ne 0 ]; then
   echo "❌ Please run this script as root."
   exit 1
 fi
+
+# Confirm the root directory exists
+if [[ ! -d $PVPOKE_ROOT ]]; then
+  echo "Error: PVPOKE_ROOT directory '$PVPOKE_ROOT' does not exist."
+  exit 1
+fi
+
+echo "Using PVPOKE_ROOT directory: $PVPOKE_ROOT"
+cd "$PVPOKE_ROOT"
 
 echo "🔧 Resolving merge conflicts..."
 
