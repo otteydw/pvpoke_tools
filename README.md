@@ -56,6 +56,11 @@ Generates a JSON configuration for Zygarde-related features based on an existing
 Automates the resolution of common git merge conflicts in the pvpoke repository.
 **Usage:** `./pvpoke-resolve-conflicts.sh`
 
+### `pvpoke-rankings-sanity-check.py`
+
+Validates PvPoke CSV rankings against a cup JSON file for inclusion/exclusion rules.
+**Usage:** `./pvpoke-rankings-sanity-check.py <csv_path> <cup_json_path> <gamemaster_json_path>`
+
 ### `rename-cup.sh`
 
 Renames an existing PvPoke cup.
