@@ -6,6 +6,24 @@ set -euo pipefail
 # WARNING: This script will overwrite certain files, so backups are important
 # ---------------------------------------------------------------
 
+# Usage function
+usage() {
+  echo "Usage: $(basename "$0") [--json-file <filename>]"
+  echo "       $(basename "$0") [-h|--help]"
+  echo ""
+  echo "This script generates the files required to build a custom PvPoke meta."
+  echo "Options:"
+  echo "  --json-file <filename>  Provide a JSON file containing the meta structure."
+  echo "                          If not provided, you will be prompted for direct input."
+  echo "  -h, --help              Display this help message and exit."
+  echo ""
+  echo "Environment Variables:"
+  echo "  webrt                   (Optional) Override the default root path for PvPoke source files."
+  echo "                          Default: /var/www/builder.devon.gg/public_html/pvpoke/src"
+  echo ""
+  echo "Reference: https://github.com/pvpoke/pvpoke/wiki/Creating-New-Cups-&-Rankings"
+}
+
 # ---------------------------------------------
 # Check for required commands
 # ---------------------------------------------
@@ -13,6 +31,37 @@ command -v rpl >/dev/null 2>&1 || {
   echo >&2 "I require rpl but it's not installed.  Aborting."
   exit 1
 }
+command -v jq >/dev/null 2>&1 || {
+  echo >&2 "I require jq but it's not installed.  Aborting."
+  exit 1
+}
+
+JSON_FILE=""
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  --json-file)
+    if [[ -n $2 && ! $2 =~ ^- ]]; then
+      JSON_FILE="$2"
+      shift 2
+    else
+      echo "Error: --json-file requires a filename argument." >&2
+      usage
+      exit 1
+    fi
+    ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    echo "Error: Unknown argument '$1'" >&2
+    usage
+    exit 1
+    ;;
+  esac
+done
 
 # Set the root path for the PvPoke source files
 webrt="${webrt:-/var/www/builder.devon.gg/public_html/pvpoke/src}"
@@ -36,10 +85,31 @@ sleep 2s
 # Step 2: Create the Gamemaster Cup JSON file
 # ---------------------------------------------
 touch "${webrt}"/data/gamemaster/cups/"${name}".json
-echo -n "Enter the json structure for the meta (must be a single line): "
-read -r cup
+
+_cup_content="" # Use a local variable to hold content
+
+if [[ -n $JSON_FILE ]]; then
+  if [[ -f $JSON_FILE ]]; then
+    _cup_content=$(cat "$JSON_FILE")
+    if [[ -z $_cup_content ]]; then
+      echo "Error: JSON file '$JSON_FILE' is empty. Aborting." >&2
+      exit 1
+    fi
+  else
+    echo "Error: JSON file not found at '$JSON_FILE'. Aborting." >&2
+    exit 1
+  fi
+else
+  echo -n "Enter the json structure for the meta (must be a single line): "
+  read -r _cup_content
+  if [[ -z $_cup_content ]]; then
+    echo "Error: JSON input cannot be empty. Aborting." >&2
+    exit 1
+  fi
+fi
+
 # Append user-provided JSON structure to the file
-cat <<<"$cup" >>"${webrt}"/data/gamemaster/cups/"${name}".json
+cat <<<"$_cup_content" >>"${webrt}"/data/gamemaster/cups/"${name}".json
 
 # Replace placeholders in JSON with actual codename and title
 rpl -w "custom" "$name" "${webrt}"/data/gamemaster/cups/"${name}".json
@@ -49,64 +119,51 @@ rpl -w "Custom" "$title" "${webrt}"/data/gamemaster/cups/"${name}".json
 # Step 3: Backup existing formats files
 # ---------------------------------------------
 echo "I am now backing up all format files before proceeding ..."
+mkdir -p "${webrt}"/data/gamemaster/formats-bu
 cp "${webrt}"/data/gamemaster/formats.json "${webrt}"/data/gamemaster/formats-bu/formats-"${date}".json
-cp "${webrt}"/data/gamemaster/formats-all.json "${webrt}"/data/gamemaster/formats-bu/formats-all-"${date}".json
-cp "${webrt}"/data/gamemaster/formats-new.json "${webrt}"/data/gamemaster/formats-bu/formats-new-"${date}".json
 sleep 2s
-
-# ---------------------------------------------
-# Step 4: Prepare new format listings for the meta
-# ---------------------------------------------
-echo "Editing the Gamemaster Format Listing to include your new meta ..."
-sleep 2s
-
-cp "${webrt}"/data/gamemaster/formats-all.json "${webrt}"/data/gamemaster/formats-bu/formats-all-"${date}".json
-
-# Make copies of formats-new.json and formats-all.json for the new meta
-cp "${webrt}"/data/gamemaster/formats-new.json "${webrt}"/data/gamemaster/formats-bu/formats-"${name}"-new.json
-cp "${webrt}"/data/gamemaster/formats-all.json "${webrt}"/data/gamemaster/formats-bu/formats-"${name}"-all.json
-
-echo "The necessary files are created, now editing the name and title ..."
-sleep 2s
-
-# Replace placeholder names and titles in the new copies
-rpl -w "custom" "$name" "${webrt}"/data/gamemaster/formats-bu/formats-"${name}"-new.json
-rpl -w "Custom" "$title" "${webrt}"/data/gamemaster/formats-bu/formats-"${name}"-new.json
-rpl -w "great" "$name" "${webrt}"/data/gamemaster/formats-bu/formats-"${name}"-new.json
 
 # ---------------------------------------------
 # Step 5: Merge new meta into formats.json
 # ---------------------------------------------
-echo "Adding the new meta to formats.json in gamemaster, creating a backup ..."
-sleep 2s
-cat "${webrt}"/data/gamemaster/formats-bu/formats-"${name}"-new.json >>"${webrt}"/data/gamemaster/formats-bu/formats-"${name}"-all.json
-
-# Backup current formats.json
-mv "${webrt}"/data/gamemaster/formats.json "${webrt}"/data/gamemaster/formats-bu/formats-"${date}".json
-
-# Replace formats.json with the updated version
-cp -ar "${webrt}"/data/gamemaster/formats-bu/formats-"${name}"-all.json "${webrt}"/data/gamemaster/formats.json
-
-# ---------------------------------------------
-# Step 6: Clean up temporary files and fix JSON structure
-# ---------------------------------------------
-echo "Removing temporary files and finalizing formats-all.json ..."
+echo "Adding the new meta to formats.json in gamemaster ..."
 sleep 2s
 
-# Remove the last line twice to prevent duplicate closing braces
-head -n -1 "${webrt}"/data/gamemaster/formats-bu/formats-"${name}"-all.json >"${webrt}"/data/gamemaster/formats-bu/formats-temp1.json
-head -n -1 "${webrt}"/data/gamemaster/formats-bu/formats-temp1.json >"${webrt}"/data/gamemaster/formats-bu/formats-temp2.json
+FORMATS_FILE="${webrt}/data/gamemaster/formats.json"
 
-# Add a comma to allow further meta entries
-echo "        }," >>"${webrt}"/data/gamemaster/formats-bu/formats-temp2.json
+# Check if formats.json exists and is a valid JSON array
+if [[ ! -f $FORMATS_FILE ]]; then
+  echo "Error: formats.json not found at '$FORMATS_FILE'. Aborting." >&2
+  exit 1
+fi
+if ! jq -e . <"$FORMATS_FILE" >/dev/null; then
+  echo "Error: formats.json at '$FORMATS_FILE' is not valid JSON. Aborting." >&2
+  exit 1
+fi
+if ! jq -e '.[0]' <"$FORMATS_FILE" >/dev/null; then
+  echo "Error: formats.json at '$FORMATS_FILE' is not a JSON array. Aborting." >&2
+  exit 1
+fi
 
-# Replace formats-all.json with the cleaned-up version
-mv "${webrt}"/data/gamemaster/formats-bu/formats-temp2.json "${webrt}"/data/gamemaster/formats-all.json
+# Extract the "Custom" template from formats.json
+CUSTOM_TEMPLATE=$(jq -c '.[] | select(.cup == "custom" or .title == "Custom")' "$FORMATS_FILE")
 
-# Remove intermediate temporary files
-rm "${webrt}"/data/gamemaster/formats-bu/formats-"${name}"-all.json
-rm "${webrt}"/data/gamemaster/formats-bu/formats-"${name}"-new.json
-rm "${webrt}"/data/gamemaster/formats-bu/formats-temp1.json
+if [[ -z $CUSTOM_TEMPLATE ]]; then
+  echo "Error: 'Custom' template (cup: \"custom\" or title: \"Custom\") not found in formats.json. Aborting." >&2
+  exit 1
+fi
+
+# Read existing formats, append new template, update placeholders, and write back
+if ! jq --arg name "$name" --arg title "$title" \
+  --argjson custom_template "$CUSTOM_TEMPLATE" \
+  '[ .[] | select(.cup != $name) ] +
+     [ $custom_template | .cup = $name | .title = $title | .meta = $name ]' \
+  "$FORMATS_FILE" >"${FORMATS_FILE}.tmp"; then
+  echo "Error: Failed to update formats.json with jq. Aborting." >&2
+  rm -f "${FORMATS_FILE}.tmp" # Clean up temp file
+  exit 1
+fi
+mv "${FORMATS_FILE}.tmp" "$FORMATS_FILE"
 
 echo "formats.json is now complete. Compile and run the ranker/sandbox next."
 sleep 2s
@@ -150,5 +207,10 @@ echo "All necessary files are now created. Compile, create groups, import movese
 # Step 10: Set permissions
 # ---------------------------------------------
 echo "Setting permissions ..."
-chmod 777 -R /var/www/builder.devon.gg/public_html/pvpoke/
+# This chmod command applies permissions to the main project directory,
+# specifically for the devon.gg build server where specific permissions are required.
+# It only runs if 'webrt' is using its default value, indicating it's on the build server.
+if [[ $webrt == "/var/www/builder.devon.gg/public_html/pvpoke/src" ]]; then
+  chmod 777 -R "$(dirname "$webrt")/"
+fi
 sleep 2s
