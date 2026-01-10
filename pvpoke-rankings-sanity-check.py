@@ -85,8 +85,12 @@ def main():
         # Not strictly used in this simplest form, but required by prompt.
     )
     parser.add_argument("moves_json_path", help="Path to the moves JSON file (e.g., moves.json).")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output for debugging.")
 
     args = parser.parse_args()
+
+    global VERBOSE_LOGGING
+    VERBOSE_LOGGING = args.verbose
 
     # Load data
     gamemaster_data = load_json_file(args.gamemaster_json_path)
@@ -190,8 +194,9 @@ def main():
     # Load moves from CSV
     csv_ranked_moves_ids = load_csv_moves(args.csv_path, move_name_to_id_map)
 
-    print(f"DEBUG: csv_ranked_moves: {csv_ranked_moves_ids}")
-    print(f"DEBUG: forbidden_moves_from_cup: {forbidden_moves_from_cup}")
+    if VERBOSE_LOGGING:
+        print(f"DEBUG: csv_ranked_moves: {csv_ranked_moves_ids}")
+        print(f"DEBUG: forbidden_moves_from_cup: {forbidden_moves_from_cup}")
 
     print("\n--- Forbidden Move Check ---")
     unexpected_forbidden_moves_in_csv = forbidden_moves_from_cup.intersection(csv_ranked_moves_ids)
