@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# This script automates the resolution of common git merge conflicts
+# in the pvpoke repository. It's designed to be run after a `git pull`
+# operation that results in conflicts, applying predefined strategies
+# for various file types (e.g., keeping 'ours' for certain files,
+# 'theirs' for gamemaster.min.json and ranking files, and handling
+# files deleted by upstream).
+
 set -euo pipefail
 
 # Use environment variable PVPOKE_ROOT if set, otherwise default
