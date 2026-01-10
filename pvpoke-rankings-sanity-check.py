@@ -6,21 +6,9 @@
 
 import argparse
 import json
-import re
 from typing import Any, Dict, List
 
 import pandas as pd
-
-
-def normalize_pokemon_name(name: str) -> str:
-    """Normalizes a Pokémon name from CSV to match speciesId format."""
-    name = name.lower()
-    name = name.replace(" ", "_")
-    name = re.sub(r"\(shadow\)", "_shadow", name)
-    name = re.sub(r"\(alolan\)", "_alolan", name)
-    name = re.sub(r"\(galarian\)", "_galarian", name)
-    name = re.sub(r"[^a-z0-9_]", "", name)  # Remove any other special characters
-    return name
 
 
 def load_json_file(filepath: str) -> Dict[str, Any]:
@@ -29,12 +17,29 @@ def load_json_file(filepath: str) -> Dict[str, Any]:
         return json.load(f)
 
 
-def load_csv_pokemon_ids(filepath: str) -> List[str]:
-    """Loads Pokémon names from a CSV and normalizes them to speciesIds."""
+def load_csv_pokemon_ids(filepath: str, species_name_to_id_map: Dict[str, str]) -> List[str]:
+    """Loads Pokémon names from a CSV, correlates them with speciesIds using the gamemaster map.
+
+    Returns a list of speciesIds found in the CSV.
+    """
     df = pd.read_csv(filepath)
     if "Pokemon" not in df.columns:
         raise ValueError(f"CSV file '{filepath}' must contain a 'Pokemon' column.")
-    return [normalize_pokemon_name(name) for name in df["Pokemon"].tolist()]
+
+    correlated_ids = []
+    for csv_pokemon_name in df["Pokemon"].tolist():
+        # Direct, case-sensitive lookup only, as per new assumption
+        species_id = species_name_to_id_map.get(csv_pokemon_name)
+
+        if species_id:
+            correlated_ids.append(species_id)
+        else:
+            print(
+                f"⚠️ WARNING: Could not correlate CSV Pokémon '{csv_pokemon_name}' "
+                "to a speciesId using gamemaster map. Skipping this entry."
+            )
+
+    return correlated_ids
 
 
 def main():
@@ -53,9 +58,32 @@ def main():
     args = parser.parse_args()
 
     # Load data
-    ranked_pokemon_ids = set(load_csv_pokemon_ids(args.csv_path))
+    gamemaster_data = load_json_file(args.gamemaster_json_path)
     cup_data = load_json_file(args.cup_json_path)
-    # gamemaster_data = load_json_file(args.gamemaster_json_path) # Not used in simplest form yet
+
+    # Create species_name_to_id_map from gamemaster
+    species_name_to_id_map = {}
+    pokemon_entries = []
+    if isinstance(gamemaster_data, dict) and "pokemon" in gamemaster_data:
+        pokemon_entries = gamemaster_data.get("pokemon", [])
+    elif isinstance(gamemaster_data, list):
+        pokemon_entries = gamemaster_data
+
+    if not pokemon_entries:
+        print(
+            f"❌ ERROR: Could not find 'pokemon' array or valid entries in gamemaster JSON "
+            f"at '{args.gamemaster_json_path}'. Aborting."
+        )
+        exit(1)
+
+    for entry in pokemon_entries:
+        species_id = entry.get("speciesId")
+        species_name = entry.get("speciesName")
+        if species_id and species_name:
+            # Store original speciesName as key, as per new assumption of exact match
+            species_name_to_id_map[species_name] = species_id
+
+    ranked_pokemon_ids = set(load_csv_pokemon_ids(args.csv_path, species_name_to_id_map))
 
     # Extract required and forbidden pokemon IDs from cup JSON
     required_pokemon_ids = set()
