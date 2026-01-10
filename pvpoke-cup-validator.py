@@ -20,6 +20,7 @@ def main():
     parser = argparse.ArgumentParser(description="Validate a PvPoke cup JSON file against the gamemaster data.")
     parser.add_argument("cup_json_path", help="Path to the cup JSON file (e.g., modifiedlove.json).")
     parser.add_argument("gamemaster_json_path", help="Path to the gamemaster JSON file (e.g., gamemaster.json).")
+    parser.add_argument("moves_json_path", help="Path to the moves JSON file (e.g., moves.json).")
 
     args = parser.parse_args()
 
@@ -78,9 +79,41 @@ def main():
     else:
         print(f"✅ All Pokémon speciesIds mentioned in '{args.cup_json_path}' are found in the gamemaster.")
 
+    # Load moves data and extract valid moveIds
+    moves_data = load_json_file(args.moves_json_path)
+    gamemaster_move_ids: Set[str] = set()
+
+    for move_entry in moves_data:
+        move_id = move_entry.get("moveId")
+        if move_id:
+            gamemaster_move_ids.add(move_id)
+
+    # Extract all moveIds mentioned in the cup JSON
+    cup_mentioned_move_ids: Set[str] = set()
+
+    for section in ["include", "exclude"]:
+        for rule in cup_data.get(section, []):
+            if isinstance(rule, dict) and rule.get("filterType") == "move" and "values" in rule:
+                cup_mentioned_move_ids.update([move_id.upper() for move_id in rule["values"]])
+
+    unknown_moves = cup_mentioned_move_ids - gamemaster_move_ids
+
+    if unknown_moves:
+        all_valid = False
+        print("\n--- Move Validation Check ---")
+        print(
+            f"❌ ERROR: The following moveIds from the cup JSON file "
+            f"'{args.cup_json_path}' are NOT found in the moves JSON file "
+            f"'{args.moves_json_path}':"
+        )
+        for move_id in sorted(list(unknown_moves)):
+            print(f"   - {move_id}")
+    else:
+        print(f"✅ All moveIds mentioned in '{args.cup_json_path}' are found in the moves gamemaster.")
+
     print("\n--- Summary ---")
     if all_valid:
-        print("✅ Cup JSON validation PASSED: All mentioned species exist in gamemaster.")
+        print("✅ Cup JSON validation PASSED: All mentioned species and moves exist in gamemaster.")
         exit(0)
     else:
         print("❌ Cup JSON validation FAILED: Discrepancies found.")
