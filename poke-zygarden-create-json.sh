@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-webrt="/var/www/builder.devon.gg/public_html/pvpoke/src"
+webrt="${webrt:-/var/www/builder.devon.gg/public_html/pvpoke/src}"
 
 # Ensure jq is installed
 if ! command -v jq >/dev/null 2>&1; then

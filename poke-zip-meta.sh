@@ -9,9 +9,9 @@ command -v zip >/dev/null 2>&1 || {
   exit 1
 }
 
-webrt="/var/www/builder.devon.gg/public_html/pvpoke/src"
-filedrop="/var/www/builder.devon.gg/public_html/pvpoke/filedrop"
-uri_root="https://builder.devon.gg/pvpoke/filedrop"
+webrt="${webrt:-/var/www/builder.devon.gg/public_html/pvpoke/src}"
+filedrop="${FILEDROP:-$(dirname "$webrt")/filedrop}"
+uri_root="${PVPOKE_FILEDROP_URI:-https://builder.devon.gg/pvpoke/filedrop}"
 
 # meta name can be passed as first arg
 default_name="${1:-}"
