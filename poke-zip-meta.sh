@@ -1,6 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Usage function
+usage() {
+  echo "Usage: $(basename "$0") [-h|--help] [meta_name]"
+  echo ""
+  echo "This script zips the files for a specified PvPoke meta, making them available for download."
+  echo "It copies rankings, cup, overrides, and group JSON files into a ZIP archive."
+  echo ""
+  echo "Arguments:"
+  echo "  meta_name   (Optional) The codename of the meta to zip (e.g., modifiedlove)."
+  echo "              If not provided, you will be prompted to enter it."
+  echo ""
+  echo "Options:"
+  echo "  -h, --help  Display this help message and exit."
+  echo ""
+  echo "Environment Variables:"
+  echo "  PVPOKE_SRC_ROOT     (Optional) Override the default root path for PvPoke source files."
+  echo "                      Default: /var/www/builder.devon.gg/public_html/pvpoke/src"
+  echo "  FILEDROP            (Optional) Override the default filedrop directory path."
+  echo "                      Default: <PVPOKE_SRC_ROOT parent>/filedrop"
+  echo "  PVPOKE_FILEDROP_URI (Optional) Override the default URI root for the filedrop."
+  echo "                      Default: https://builder.devon.gg/pvpoke/filedrop"
+}
+
 # ---------------------------------------------
 # Check for required commands
 # ---------------------------------------------
@@ -13,8 +36,32 @@ webrt="${PVPOKE_SRC_ROOT:-/var/www/builder.devon.gg/public_html/pvpoke/src}"
 filedrop="${FILEDROP:-$(dirname "$webrt")/filedrop}"
 uri_root="${PVPOKE_FILEDROP_URI:-https://builder.devon.gg/pvpoke/filedrop}"
 
+# Variable to hold optional meta_name from CLI
+CLI_META_NAME=""
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    # If it's not a recognized option, treat it as meta_name
+    if [[ -z $CLI_META_NAME ]]; then
+      CLI_META_NAME="$1"
+    else
+      echo "Error: Too many arguments. Expected at most one meta_name, but got '$1'." >&2
+      usage
+      exit 1
+    fi
+    shift # Consume the argument
+    ;;
+  esac
+done
+
 # meta name can be passed as first arg
-default_name="${1:-}"
+default_name="${CLI_META_NAME:-}"
 
 # prompt user, with default
 if [[ -n $default_name ]]; then

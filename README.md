@@ -1,6 +1,6 @@
 # PvPoke Cup Management Scripts
 
-TThis repository contains a set of shell scripts for managing "cups" (custom metas) for a [PvPoke](https://pvpoke.com/) instance. These scripts help automate the creation, cloning, renaming, and deletion of cup configurations, which include JSON files, rankings, and overrides
+This repository contains a set of shell scripts for managing "cups" (custom metas) for a [PvPoke](https://pvpoke.com/) instance. These scripts help automate the creation, cloning, renaming, and deletion of cup configurations, which include JSON files, rankings, and overrides.
 
 ## Prerequisites
 
@@ -19,63 +19,47 @@ export PVPOKE_SRC_ROOT="/path/to/your/pvpoke/src"
 
 ## Scripts
 
+Here is a list of the available scripts and their primary functions:
+
 ### `clone-cup.sh`
 
-Clones an existing cup to create a new one. This is useful for creating a new cup based on an existing one.
-
-**Usage:**
-
-```bash
-./clone-cup.sh <old_cup_name> <new_cup_name>
-```
-
-**Example:**
-
-```bash
-./clone-cup.sh december2025 january2026
-```
+Clones an existing PvPoke cup to a new one.
+**Usage:** `./clone-cup.sh oldname newname`
 
 ### `delete-cup.sh`
 
-Deletes a cup, including its associated directories and JSON files.
-
-**Usage:**
-
-```bash
-./delete-cup.sh <cup_name>
-```
-
-**Example:**
-
-```bash
-./delete-cup.sh january2026
-```
-
-### `rename-cup.sh`
-
-Renames an existing cup.
-
-**Usage:**
-
-```bash
-./rename-cup.sh <old_cup_name> <new_cup_name>
-```
-
-**Example:**
-
-```bash
-./rename-cup.sh december2025 holidaycup2025
-```
+Deletes an existing PvPoke cup.
+**Usage:** `./delete-cup.sh cupname`
 
 ### `poke-create-files.sh`
 
-A more interactive script to create all the necessary files for a new cup. It prompts for the cup name, title, and other details.
+Generates the files required to build a custom PvPoke meta.
+**Usage:** `./poke-create-files.sh [--json-file <filename>]`
 
-**Usage:**
+### `poke-create-meta-threat-group.sh`
 
-```bash
-./poke-create-files.sh
-```
+Creates a 'meta threat group' JSON file by filtering Pokémon data.
+**Usage:** `./poke-create-meta-threat-group.sh <threat_group_file> <pokemon_json_file>`
+
+### `poke-zip-meta.sh`
+
+Zips the files for a specified PvPoke meta, making them available for download.
+**Usage:** `./poke-zip-meta.sh [meta_name]`
+
+### `poke-zygarden-create-json.sh`
+
+Generates a JSON configuration for Zygarde-related features based on an existing PvPoke cup's data.
+**Usage:** `./poke-zygarden-create-json.sh <cupname>`
+
+### `pvpoke-resolve-conflicts.sh`
+
+Automates the resolution of common git merge conflicts in the pvpoke repository.
+**Usage:** `./pvpoke-resolve-conflicts.sh`
+
+### `rename-cup.sh`
+
+Renames an existing PvPoke cup.
+**Usage:** `./rename-cup.sh oldname newname`
 
 ## Disclaimer
 
