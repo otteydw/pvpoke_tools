@@ -1,6 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
+# ---------------------------------------------
+# Check for required commands
+# ---------------------------------------------
+command -v zip >/dev/null 2>&1 || {
+  echo >&2 "I require zip but it's not installed.  Aborting."
+  exit 1
+}
+
 webrt="/var/www/builder.devon.gg/public_html/pvpoke/src"
 filedrop="/var/www/builder.devon.gg/public_html/pvpoke/filedrop"
 uri_root="https://builder.devon.gg/pvpoke/filedrop"

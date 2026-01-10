@@ -5,6 +5,14 @@
 # WARNING: This script will overwrite certain files, so backups are important
 # ---------------------------------------------------------------
 
+# ---------------------------------------------
+# Check for required commands
+# ---------------------------------------------
+command -v rpl >/dev/null 2>&1 || {
+  echo >&2 "I require rpl but it's not installed.  Aborting."
+  exit 1
+}
+
 # Set the root path for the PvPoke source files
 webrt="/var/www/builder.devon.gg/public_html/pvpoke/src"
 

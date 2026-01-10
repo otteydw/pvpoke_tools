@@ -10,7 +10,7 @@
 # The resulting JSON is printed to standard output, allowing it to be redirected to a file.
 #
 # Usage:
-#   ./poke-create-meta-threat-group.sh <threat_group_file> <pokemon_json_file>
+#   ./poke-create-meta-threat_group.sh <threat_group_file> <pokemon_json_file>
 #
 # Arguments:
 #   threat_group_file:  A path to a text file containing one Pokémon speciesId per line
@@ -23,6 +23,14 @@
 # Example:
 #   ./poke-create-meta-threat-group.sh my_threats.txt master/pokemon.json > threat_group.json
 #
+
+# ---------------------------------------------
+# Check for required commands
+# ---------------------------------------------
+command -v jq >/dev/null 2>&1 || {
+  echo >&2 "I require jq but it's not installed.  Aborting."
+  exit 1
+}
 
 # --- Input Validation ---
 

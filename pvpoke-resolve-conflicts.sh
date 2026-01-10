@@ -8,6 +8,14 @@
 
 set -euo pipefail
 
+# ---------------------------------------------
+# Check for required commands
+# ---------------------------------------------
+command -v git >/dev/null 2>&1 || {
+  echo >&2 "I require git but it's not installed.  Aborting."
+  exit 1
+}
+
 # Use environment variable PVPOKE_ROOT if set, otherwise default
 PVPOKE_ROOT="${PVPOKE_ROOT:-/var/www/builder.devon.gg/public_html/pvpoke}"
 
