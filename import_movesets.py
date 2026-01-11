@@ -93,6 +93,7 @@ def generate_moveset_overrides(cup, league, predefined_overrides):
             species_id = rank["speciesId"]
             fast_move = rank["moveset"][0].upper()  # Convert to uppercase
 
+            # --- Fast Move Handling ---
             if fast_move in banned_moves:
                 pokemon = pokemon_data.get(species_id)
                 if not pokemon:
@@ -102,7 +103,7 @@ def generate_moveset_overrides(cup, league, predefined_overrides):
                     )
                     continue
 
-                all_fast_moves = [m.upper() for m in pokemon.get("fastMoves", [])]  # Convert to uppercase
+                all_fast_moves = [m.upper() for m in pokemon.get("fastMoves", [])]
                 valid_alternatives = [m for m in all_fast_moves if m not in banned_moves]
 
                 if len(valid_alternatives) == 1:
@@ -114,8 +115,9 @@ def generate_moveset_overrides(cup, league, predefined_overrides):
                     fast_move = new_move
                 elif len(valid_alternatives) > 1:
                     chosen_move = None
-                    if species_id.lower() in predefined_overrides:
-                        predefined_move = predefined_overrides[species_id.lower()]
+                    override_data = predefined_overrides.get(species_id.lower())
+                    if override_data and "fastMove" in override_data:
+                        predefined_move = override_data["fastMove"].upper()
                         if predefined_move in valid_alternatives:
                             print(
                                 f"Info: Using predefined override for {species_id}: {predefined_move}",
@@ -154,10 +156,81 @@ def generate_moveset_overrides(cup, league, predefined_overrides):
                     )
                     continue
 
+            # --- Charged Move Handling ---
+            final_charged_moves = []
+            current_charged_moves = [cm.upper() for cm in rank["moveset"][1:]]
+
+            override_data = predefined_overrides.get(species_id.lower())
+            # Check for a complete "chargedMoves" override first
+            if override_data and "chargedMoves" in override_data:
+                predefined_cms = [cm.upper() for cm in override_data["chargedMoves"]]
+                # Validate that the predefined moves are not banned
+                if all(cm not in banned_moves for cm in predefined_cms):
+                    print(f"Info: Using predefined charged moves for {species_id}: {predefined_cms}", file=sys.stderr)
+                    final_charged_moves = predefined_cms
+                else:
+                    print(
+                        f"Warning: Predefined charged moves for {species_id} are banned.",
+                        "Ignoring override.",
+                        file=sys.stderr,
+                    )
+
+            # If no valid override was used, proceed with conflict resolution
+            if not final_charged_moves:
+                for i, charged_move in enumerate(current_charged_moves):
+                    if charged_move in banned_moves:
+                        pokemon = pokemon_data.get(species_id)
+                        if not pokemon:
+                            print(f"Warning: {species_id} not found in pokemon.json.", file=sys.stderr)
+                            continue
+
+                        all_charged_moves = [m.upper() for m in pokemon.get("chargedMoves", [])]
+                        valid_alternatives = [
+                            m for m in all_charged_moves if m not in banned_moves and m not in final_charged_moves
+                        ]
+
+                        chosen_move = None
+                        if len(valid_alternatives) == 1:
+                            chosen_move = valid_alternatives[0]
+                            print(
+                                f"Info: Auto-replacing banned charged move {charged_move}",
+                                f"with {chosen_move} for {species_id}.",
+                                file=sys.stderr,
+                            )
+                        elif len(valid_alternatives) > 1:
+                            print(
+                                f"Info: {species_id} has banned charged move {charged_move}.",
+                                "Please choose a replacement:",
+                                file=sys.stderr,
+                            )
+                            for j, move in enumerate(valid_alternatives):
+                                print(f"  {j + 1}: {move}", file=sys.stderr)
+
+                            choice = -1
+                            while choice < 1 or choice > len(valid_alternatives):
+                                try:
+                                    user_input = input(f"Enter number (1-{len(valid_alternatives)}): ")
+                                    choice = int(user_input)
+                                except (ValueError, EOFError):
+                                    print("Invalid input. Please enter a number.", file=sys.stderr)
+                                    continue
+                            chosen_move = valid_alternatives[choice - 1]
+
+                        if chosen_move:
+                            final_charged_moves.append(chosen_move)
+                        else:
+                            print(
+                                f"Warning: No valid alternative for banned charged move {charged_move}",
+                                f"on {species_id}.",
+                                file=sys.stderr,
+                            )
+                    else:
+                        final_charged_moves.append(charged_move)
+
             moveset = {
                 "speciesId": species_id,
                 "fastMove": fast_move,
-                "chargedMoves": [cm.upper() for cm in rank["moveset"][1:]],  # Convert to uppercase
+                "chargedMoves": final_charged_moves,
             }
             overrides.append(moveset)
 
@@ -182,15 +255,20 @@ if __name__ == "__main__":
     if args.override_file:
         try:
             with open(args.override_file, "r") as f:
-                for line in f:
-                    parts = line.strip().split()
-                    if len(parts) == 2:
-                        species_id, move_name = parts
-                        predefined_overrides[species_id.lower()] = move_name.upper()
+                overrides_list = json.load(f)
+                for override in overrides_list:
+                    if "speciesId" in override:
+                        predefined_overrides[override["speciesId"].lower()] = override
                     else:
-                        print(f"Warning: Skipping invalid line in override file: {line.strip()}", file=sys.stderr)
+                        print(
+                            f"Warning: Skipping invalid entry in override file (missing 'speciesId'): {override}",
+                            file=sys.stderr,
+                        )
         except FileNotFoundError:
             print(f"Error: Override file not found at {args.override_file}", file=sys.stderr)
+            sys.exit(1)
+        except json.JSONDecodeError:
+            print(f"Error: Could not decode JSON from override file at {args.override_file}", file=sys.stderr)
             sys.exit(1)
 
     generate_moveset_overrides(args.cup, args.league, predefined_overrides)
