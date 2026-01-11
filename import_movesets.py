@@ -82,6 +82,9 @@ def generate_moveset_overrides(cup, league):
             }
             overrides.append(moveset)
 
+    # Sort the overrides by speciesId alphabetically
+    overrides.sort(key=lambda x: x["speciesId"])
+
     print(json.dumps(overrides, indent=4))
 
 
