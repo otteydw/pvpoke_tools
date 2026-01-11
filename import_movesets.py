@@ -7,13 +7,14 @@ import sys
 from pathlib import Path
 
 
-def generate_moveset_overrides(cup, league, predefined_overrides):
+def generate_moveset_overrides(cup, league, predefined_overrides, newly_chosen_overrides):
     """Generates a list of moveset overrides for eligible Pokemon in a given cup and league.
 
     Args:
         cup (str): The name of the cup (e.g., "all", "fossil").
         league (int): The league CP (e.g., 1500, 2500).
         predefined_overrides (dict): A dictionary of pre-defined move overrides {species_id: move_name}.
+        newly_chosen_overrides (dict): A dictionary to store newly made choices.
 
     This function reads the gamemaster and ranking data, filters eligible Pokemon
     based on the cup's include/exclude rules, and then generates moveset overrides
@@ -113,6 +114,11 @@ def generate_moveset_overrides(cup, league, predefined_overrides):
                         file=sys.stderr,
                     )
                     fast_move = new_move
+                    if species_id.lower() not in predefined_overrides:
+                        if species_id.lower() not in newly_chosen_overrides:
+                            newly_chosen_overrides[species_id.lower()] = {"speciesId": species_id}
+                        newly_chosen_overrides[species_id.lower()]["fastMove"] = fast_move
+
                 elif len(valid_alternatives) > 1:
                     chosen_move = None
                     override_data = predefined_overrides.get(species_id.lower())
@@ -149,6 +155,11 @@ def generate_moveset_overrides(cup, league, predefined_overrides):
                                 continue
                         chosen_move = valid_alternatives[choice - 1]
                     fast_move = chosen_move
+                    if species_id.lower() not in predefined_overrides:
+                        if species_id.lower() not in newly_chosen_overrides:
+                            newly_chosen_overrides[species_id.lower()] = {"speciesId": species_id}
+                        newly_chosen_overrides[species_id.lower()]["fastMove"] = fast_move
+
                 else:
                     print(
                         f"Warning: No valid alternative fast moves for {species_id} to replace {fast_move}. Skipping.",
@@ -227,6 +238,16 @@ def generate_moveset_overrides(cup, league, predefined_overrides):
                     else:
                         final_charged_moves.append(charged_move)
 
+            # Track newly chosen charged moves
+            original_charged_moves = {cm.upper() for cm in rank["moveset"][1:]}
+            if set(final_charged_moves) != original_charged_moves:
+                # Only track if the final moveset is different and not from a predefined full override
+                override_data = predefined_overrides.get(species_id.lower())
+                if not (override_data and "chargedMoves" in override_data):
+                    if species_id.lower() not in newly_chosen_overrides:
+                        newly_chosen_overrides[species_id.lower()] = {"speciesId": species_id}
+                    newly_chosen_overrides[species_id.lower()]["chargedMoves"] = final_charged_moves
+
             moveset = {
                 "speciesId": species_id,
                 "fastMove": fast_move,
@@ -271,4 +292,32 @@ if __name__ == "__main__":
             print(f"Error: Could not decode JSON from override file at {args.override_file}", file=sys.stderr)
             sys.exit(1)
 
-    generate_moveset_overrides(args.cup, args.league, predefined_overrides)
+    newly_chosen_overrides: dict = {}
+    generate_moveset_overrides(args.cup, args.league, predefined_overrides, newly_chosen_overrides)
+
+    if newly_chosen_overrides:
+        print("\nNew move selections were made during this session.", file=sys.stderr)
+        save_choice = ""
+        while save_choice not in ["y", "n"]:
+            save_choice = input("Do you want to save these choices to an override file? (y/n): ").lower()
+
+        if save_choice == "y":
+            default_filename = args.override_file or "new_overrides.json"
+            output_filename_prompt = f"Enter filename to save to [{default_filename}]: "
+            output_filename = input(output_filename_prompt).strip()
+            if not output_filename:
+                output_filename = default_filename
+
+            # Merge old and new overrides, with new ones taking precedence
+            final_overrides_dict = predefined_overrides.copy()
+            final_overrides_dict.update(newly_chosen_overrides)
+
+            # Convert dictionary values to a list and sort by speciesId
+            final_overrides_list = sorted(final_overrides_dict.values(), key=lambda x: x["speciesId"])
+
+            try:
+                with open(output_filename, "w") as f:
+                    json.dump(final_overrides_list, f, indent=4)
+                print(f"Successfully saved overrides to {output_filename}", file=sys.stderr)
+            except IOError as e:
+                print(f"Error: Could not write to file {output_filename}: {e}", file=sys.stderr)
