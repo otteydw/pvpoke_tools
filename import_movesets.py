@@ -248,10 +248,16 @@ def generate_moveset_overrides(cup, league, predefined_overrides, newly_chosen_o
                         newly_chosen_overrides[species_id.lower()] = {"speciesId": species_id}
                     newly_chosen_overrides[species_id.lower()]["chargedMoves"] = final_charged_moves
 
+            weight = 1
+            override_data = predefined_overrides.get(species_id.lower())
+            if override_data and "weight" in override_data:
+                weight = override_data["weight"]
+
             moveset = {
                 "speciesId": species_id,
                 "fastMove": fast_move,
                 "chargedMoves": final_charged_moves,
+                "weight": weight,
             }
             overrides.append(moveset)
 
