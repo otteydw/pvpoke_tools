@@ -6,6 +6,8 @@
 
 import argparse
 import json
+import os
+import sys
 from typing import Any, Dict, Set
 
 
@@ -19,14 +21,22 @@ def main():
     """Main function to parse arguments and run the cup JSON validation."""
     parser = argparse.ArgumentParser(description="Validate a PvPoke cup JSON file against the gamemaster data.")
     parser.add_argument("cup_json_path", help="Path to the cup JSON file (e.g., modifiedlove.json).")
-    parser.add_argument("gamemaster_json_path", help="Path to the gamemaster JSON file (e.g., gamemaster.json).")
-    parser.add_argument("moves_json_path", help="Path to the moves JSON file (e.g., moves.json).")
 
     args = parser.parse_args()
 
+    pvpoke_src_root = os.environ.get("PVPOKE_SRC_ROOT")
+    if not pvpoke_src_root:
+        print("❌ ERROR: PVPOKE_SRC_ROOT environment variable is not set.", file=sys.stderr)
+        print("Please set it to the absolute path of your pvpoke/src directory, e.g.:", file=sys.stderr)
+        print("  export PVPOKE_SRC_ROOT=/Users/dottey/git/personal/pvpoke/src", file=sys.stderr)
+        exit(1)
+
+    gamemaster_json_path = os.path.join(pvpoke_src_root, "data", "gamemaster.json")
+    moves_json_path = os.path.join(pvpoke_src_root, "data", "gamemaster", "moves.json")
+
     # Load data
     cup_data = load_json_file(args.cup_json_path)
-    gamemaster_data = load_json_file(args.gamemaster_json_path)
+    gamemaster_data = load_json_file(gamemaster_json_path)
 
     # Extract all valid speciesIds from the gamemaster
     gamemaster_species_ids: Set[str] = set()
@@ -40,7 +50,7 @@ def main():
     if not pokemon_entries:
         print(
             f"❌ ERROR: Could not find 'pokemon' array or valid entries in gamemaster JSON "
-            f"at '{args.gamemaster_json_path}'. Aborting."
+            f"at '{gamemaster_json_path}'. Aborting."
         )
         exit(1)
 
@@ -80,7 +90,7 @@ def main():
         print(f"✅ All Pokémon speciesIds mentioned in '{args.cup_json_path}' are found in the gamemaster.")
 
     # Load moves data and extract valid moveIds
-    moves_data = load_json_file(args.moves_json_path)
+    moves_data = load_json_file(moves_json_path)
     gamemaster_move_ids: Set[str] = set()
 
     for move_entry in moves_data:
@@ -104,7 +114,7 @@ def main():
         print(
             f"❌ ERROR: The following moveIds from the cup JSON file "
             f"'{args.cup_json_path}' are NOT found in the moves JSON file "
-            f"'{args.moves_json_path}':"
+            f"'{moves_json_path}':"
         )
         for move_id in sorted(list(unknown_moves)):
             print(f"   - {move_id}")
