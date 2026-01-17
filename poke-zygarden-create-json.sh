@@ -117,9 +117,10 @@ if [[ ! -f $cupfile ]]; then
   exit 1
 fi
 
-# Extract league and title from cup file
+# Extract league, title, and link from cup file
 league=$(jq -r '.league // empty' "$cupfile")
 title=$(jq -r '.title // empty' "$cupfile")
+rules_uri=$(jq -r '.link // empty' "$cupfile")
 
 # Validate required fields
 if [ -z "$league" ]; then
@@ -163,7 +164,7 @@ cat <<EOF
   "allowedMons": "$allowedMons",
   "name": "${title} (Devon)",
   "league": "${league_name}",
-  "rulesUri": "",
+  "rulesUri": "${rules_uri}",
   "uniquenessRule": "DexNumberAndType",
   "slots": 6
 }
