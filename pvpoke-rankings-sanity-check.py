@@ -1,6 +1,6 @@
 #!/usr/bin/env -S uv run --quiet --script
 # /// script
-# dependencies = ["requests", "pandas"]
+# dependencies = ["pandas"]
 # ///
 """A tool to validate PvPoke CSV rankings against cup inclusion/exclusion rules."""
 

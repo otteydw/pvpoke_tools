@@ -1,6 +1,6 @@
 #!/usr/bin/env -S uv run --quiet --script
 # /// script
-# dependencies = ["requests", "pandas"]
+# dependencies = []
 # ///
 """A tool to validate a PvPoke cup JSON file against the gamemaster data."""
 
