@@ -17,21 +17,18 @@ def load_json_file(filepath: str) -> Any:
         return json.load(f)
 
 
-def extract_cup_data_from_json(cup_data: Dict[str, Any]) -> tuple[Set[str], Set[str], Set[str], Set[str]]:
+def extract_cup_data_from_json(cup_data: Dict[str, Any]) -> tuple[Set[str], Set[str], Set[str]]:
     """Extracts required/forbidden species and moves from cup JSON data.
 
-    Returns (required_species, forbidden_species, required_moves, forbidden_moves).
+    Returns (required_species, forbidden_species, forbidden_moves).
     """
     required_species_ids: Set[str] = set()
     forbidden_species_ids: Set[str] = set()
     forbidden_move_ids: Set[str] = set()
-    required_move_ids: Set[str] = set()  # This is not strictly required by the prompt, but good to have a placeholder
 
     for rule in cup_data.get("include", []):
         if rule.get("filterType") == "id" and "values" in rule:
             required_species_ids.update(rule["values"])
-        if rule.get("filterType") == "move" and "values" in rule:
-            required_move_ids.update(move_id.upper() for move_id in rule["values"])
 
     for rule in cup_data.get("exclude", []):
         if isinstance(rule, str):  # Direct string exclusion for species
@@ -42,7 +39,7 @@ def extract_cup_data_from_json(cup_data: Dict[str, Any]) -> tuple[Set[str], Set[
             if rule.get("filterType") == "move" and "values" in rule:
                 forbidden_move_ids.update(move_id.upper() for move_id in rule["values"])
 
-    return required_species_ids, forbidden_species_ids, required_move_ids, forbidden_move_ids
+    return required_species_ids, forbidden_species_ids, forbidden_move_ids
 
 
 def get_pokemon_and_moves_from_data_file(data: Any) -> tuple[Set[str], Set[str]]:
@@ -321,7 +318,7 @@ def _run_validation_process(args: argparse.Namespace, pvpoke_src_root: str) -> b
         }
 
         cup_definition = load_json_file(cup_file_path)
-        required_species, forbidden_species, _, forbidden_moves = extract_cup_data_from_json(cup_definition)
+        required_species, forbidden_species, forbidden_moves = extract_cup_data_from_json(cup_definition)
 
         overrides_valid = _validate_overrides(
             cup_shortname,
