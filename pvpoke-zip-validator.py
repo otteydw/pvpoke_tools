@@ -195,8 +195,9 @@ def _validate_rankings(
         forbidden_moves=forbidden_moves,
     )
 
-    for root, _, files in os.walk(rankings_base_path):
-        for file in files:
+    for root, dirs, files in os.walk(rankings_base_path):
+        dirs.sort()
+        for file in sorted(files):
             if file.endswith(".json"):
                 ranking_file_path = os.path.join(root, file)
                 if not validator(file_path=ranking_file_path):
