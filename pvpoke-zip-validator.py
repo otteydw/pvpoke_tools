@@ -190,6 +190,62 @@ def _validate_rankings(
     return all_valid
 
 
+def _validate_file_structure(
+    cup_file_path: str,
+    overrides_base_path: str,
+    rankings_base_path: str,
+) -> bool:
+    """Validates the file structure of the cup.
+
+    Returns True if the file structure is valid, False otherwise.
+    """
+    all_valid = True
+    print("\n--- Validating File Structure ---")
+
+    cup_definition = load_json_file(cup_file_path)
+    league = cup_definition.get("league")
+    if not league:
+        print("    ❌ ERROR: `league` not found in cup definition file.")
+        return False
+
+    # Validate override file
+    expected_override_file = os.path.join(overrides_base_path, f"{league}.json")
+    if not os.path.exists(expected_override_file):
+        print(f"    ❌ ERROR: Expected override file not found at {expected_override_file}")
+        all_valid = False
+
+    # Validate ranking files
+    expected_ranking_categories = {
+        "attackers",
+        "chargers",
+        "closers",
+        "consistency",
+        "leads",
+        "overall",
+        "switches",
+    }
+    found_ranking_categories = set(os.listdir(rankings_base_path))
+
+    missing_categories = expected_ranking_categories - found_ranking_categories
+    if missing_categories:
+        for category in sorted(list(missing_categories)):
+            print(f"    ❌ ERROR: Missing ranking category: {category}")
+        all_valid = False
+
+    extra_categories = found_ranking_categories - expected_ranking_categories
+    if extra_categories:
+        for category in sorted(list(extra_categories)):
+            print(f"    ⚠️ WARNING: Extra ranking category found: {category}")
+
+    for category in found_ranking_categories.intersection(expected_ranking_categories):
+        expected_ranking_file = os.path.join(rankings_base_path, category, f"rankings-{league}.json")
+        if not os.path.exists(expected_ranking_file):
+            print(f"    ❌ ERROR: Expected ranking file not found at {expected_ranking_file}")
+            all_valid = False
+
+    return all_valid
+
+
 def _run_validation_process(args: argparse.Namespace, pvpoke_src_root: str) -> bool:
     """Runs the entire validation process for a given zip file.
 
@@ -238,6 +294,12 @@ def _run_validation_process(args: argparse.Namespace, pvpoke_src_root: str) -> b
             print(f"Error: Cup definition file not found at {cup_file_path}")
             return False
 
+        structure_valid = _validate_file_structure(
+            cup_file_path,
+            overrides_base_path,
+            rankings_base_path,
+        )
+
         gamemaster_pokemon_data = load_json_file(gamemaster_pokemon_path)
         gamemaster_moves_data = load_json_file(gamemaster_moves_path)
 
@@ -269,7 +331,7 @@ def _run_validation_process(args: argparse.Namespace, pvpoke_src_root: str) -> b
             forbidden_moves,
         )
 
-        return overrides_valid and rankings_valid
+        return structure_valid and overrides_valid and rankings_valid
 
 
 def main():
