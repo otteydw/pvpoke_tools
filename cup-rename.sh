@@ -1,6 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Usage function
+usage() {
+  echo "Usage: $(basename "$0") [-h|--help] oldname newname"
+  echo ""
+  echo "This script renames an existing PvPoke cup."
+  echo "It renames associated directories and files, and updates relevant entries in formats.json."
+  echo ""
+  echo "Arguments:"
+  echo "  oldname     The current codename of the cup (e.g., october25)."
+  echo "  newname     The new codename for the cup (e.g., december25)."
+  echo ""
+  echo "Options:"
+  echo "  -h, --help  Display this help message and exit."
+  echo ""
+  echo "Environment Variables:"
+  echo "  PVPOKE_SRC_ROOT (Optional) Override the default root path for PvPoke source files."
+  echo "                  Default: /var/www/builder.devon.gg/public_html/pvpoke/src"
+}
+
 # Use environment variable PVPOKE_SRC_ROOT if set, otherwise default
 root="${PVPOKE_SRC_ROOT:-/var/www/builder.devon.gg/public_html/pvpoke/src}"
 
@@ -12,17 +31,31 @@ fi
 
 echo "Using root directory: $root"
 
+# Ensure jq is installed
+if ! command -v jq >/dev/null 2>&1; then
+  echo "Error: jq is not installed. Please install jq to run this script."
+  exit 1
+fi
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    # All remaining arguments are positional
+    break
+    ;;
+  esac
+done
+
 # Usage: rename-cup.sh oldname newname
 # Example: ./rename-cup.sh october25 december25
 
 if [[ $# -ne 2 ]]; then
-  echo "Usage: $0 oldname newname"
-  exit 1
-fi
-
-# Ensure jq is installed
-if ! command -v jq >/dev/null 2>&1; then
-  echo "Error: jq is not installed. Please install jq to run this script."
+  usage
   exit 1
 fi
 
@@ -59,6 +92,7 @@ jq --tab \
         if .cup == $oldcup then
             .cup = $newcup
             | .title = $newtitle
+            | .meta = $newcup
         else
             .
         end
@@ -67,7 +101,7 @@ jq --tab \
 # --- 3. Update cup JSON ---
 cup_json="${root}/data/gamemaster/cups/${newname}.json"
 jq --arg cup "$newname" --arg title "$newpretty" \
-  '.cup = $cup | .title = $title' \
+  '.cup = $cup | .title = $title | .name = $cup' \
   "$cup_json" >"${cup_json}.tmp" && mv "${cup_json}.tmp" "$cup_json"
 
 echo "✅ Cup renamed successfully."

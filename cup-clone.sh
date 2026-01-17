@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Usage function
+usage() {
+  echo "Usage: $(basename "$0") [-h|--help] oldname newname"
+  echo ""
+  echo "This script clones an existing PvPoke cup to a new one."
+  echo "It copies associated data (overrides, rankings, JSON files)"
+  echo "and updates relevant entries in formats.json."
+  echo ""
+  echo "Arguments:"
+  echo "  oldname     The codename of the existing cup to clone (e.g., december2025)."
+  echo "  newname     The codename for the new cup (e.g., january2026)."
+  echo ""
+  echo "Options:"
+  echo "  -h, --help  Display this help message and exit."
+  echo ""
+  echo "Environment Variables:"
+  echo "  PVPOKE_SRC_ROOT (Optional) Override the default root path for PvPoke source files."
+  echo "                  Default: /var/www/builder.devon.gg/public_html/pvpoke/src"
+}
+
 # Use environment variable PVPOKE_SRC_ROOT if set, otherwise default
 root="${PVPOKE_SRC_ROOT:-/var/www/builder.devon.gg/public_html/pvpoke/src}"
 
@@ -12,17 +32,31 @@ fi
 
 echo "Using root directory: $root"
 
+# Ensure jq is installed
+if ! command -v jq >/dev/null 2>&1; then
+  echo "Error: jq is not installed. Please install jq to run this script."
+  exit 1
+fi
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    # All remaining arguments are positional
+    break
+    ;;
+  esac
+done
+
 # Usage: ./clone-cup.sh oldname newname
 # Example: ./clone-cup.sh december2025 january2026
 
 if [[ $# -ne 2 ]]; then
-  echo "Usage: $0 oldname newname"
-  exit 1
-fi
-
-# Ensure jq is installed
-if ! command -v jq >/dev/null 2>&1; then
-  echo "Error: jq is not installed. Please install jq to run this script."
+  usage
   exit 1
 fi
 

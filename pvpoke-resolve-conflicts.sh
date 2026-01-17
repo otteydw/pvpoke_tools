@@ -8,6 +8,45 @@
 
 set -euo pipefail
 
+# Usage function
+usage() {
+  echo "Usage: $(basename "$0") [-h|--help]"
+  echo ""
+  echo "This script automates the resolution of common git merge conflicts"
+  echo "in the pvpoke repository. It applies predefined strategies for"
+  echo "various file types (e.g., keeping 'ours' or 'theirs')."
+  echo ""
+  echo "Options:"
+  echo "  -h, --help    Display this help message and exit."
+  echo ""
+  echo "Environment Variables:"
+  echo "  PVPOKE_ROOT   (Optional) Override the default root path for the pvpoke repository."
+  echo "                Default: /var/www/builder.devon.gg/public_html/pvpoke"
+}
+
+# ---------------------------------------------
+# Check for required commands
+# ---------------------------------------------
+command -v git >/dev/null 2>&1 || {
+  echo >&2 "I require git but it's not installed.  Aborting."
+  exit 1
+}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    echo "Error: Unknown argument '$1'" >&2
+    usage
+    exit 1
+    ;;
+  esac
+done
+
 # Use environment variable PVPOKE_ROOT if set, otherwise default
 PVPOKE_ROOT="${PVPOKE_ROOT:-/var/www/builder.devon.gg/public_html/pvpoke}"
 

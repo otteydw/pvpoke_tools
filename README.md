@@ -1,15 +1,16 @@
 # PvPoke Cup Management Scripts
 
-TThis repository contains a set of shell scripts for managing "cups" (custom metas) for a [PvPoke](https://pvpoke.com/) instance. These scripts help automate the creation, cloning, renaming, and deletion of cup configurations, which include JSON files, rankings, and overrides
+This repository contains a set of scripts for managing "cups" (custom metas) for a [PvPoke](https://pvpoke.com/) instance. These scripts help automate the creation, cloning, renaming, and deletion of cup configurations, which include JSON files, rankings, and overrides.
 
 ## Prerequisites
 
 - **[jq](https://stedolan.github.io/jq/):** A lightweight and flexible command-line JSON processor. This is required for manipulating the JSON files that define the cups.
 - **[rpl](https://github.com/vrocher/rpl):** A command-line utility to replace strings in files. This is used in the `poke-create-files.sh` script.
+- **Python 3:** With `pandas` libraries for the validation scripts.
 
 ## Configuration
 
-The scripts expect a `PVPOKE_SRC_ROOT` environment variable to be set to the root directory of your PvPoke source code. If this variable is not set, it defaults to `/var/www/builder.devon.gg/public_html/pvpoke/src`.
+Some scripts expect a `PVPOKE_SRC_ROOT` environment variable to be set to the root directory of your PvPoke source code. If this variable is not set, those scripts will fail.
 
 You can set this variable in your shell's configuration file (e.g., `~/.bashrc`, `~/.zshrc`) or export it before running the scripts:
 
@@ -19,62 +20,130 @@ export PVPOKE_SRC_ROOT="/path/to/your/pvpoke/src"
 
 ## Scripts
 
-### `clone-cup.sh`
+Here is a list of the available scripts and their primary functions:
 
-Clones an existing cup to create a new one. This is useful for creating a new cup based on an existing one.
+### Cup Management
 
-**Usage:**
+#### `cup-clone.sh`
 
-```bash
-./clone-cup.sh <old_cup_name> <new_cup_name>
-```
-
-**Example:**
-
-```bash
-./clone-cup.sh december2025 january2026
-```
-
-### `delete-cup.sh`
-
-Deletes a cup, including its associated directories and JSON files.
+Clones an existing PvPoke cup to a new one.
 
 **Usage:**
 
 ```bash
-./delete-cup.sh <cup_name>
+./cup-clone.sh oldname newname
 ```
 
-**Example:**
+#### `cup-delete.sh`
 
-```bash
-./delete-cup.sh january2026
-```
-
-### `rename-cup.sh`
-
-Renames an existing cup.
+Deletes an existing PvPoke cup.
 
 **Usage:**
 
 ```bash
-./rename-cup.sh <old_cup_name> <new_cup_name>
+./cup-delete.sh cupname
 ```
 
-**Example:**
+#### `cup-rename.sh`
 
-```bash
-./rename-cup.sh december2025 holidaycup2025
-```
-
-### `poke-create-files.sh`
-
-A more interactive script to create all the necessary files for a new cup. It prompts for the cup name, title, and other details.
+Renames an existing PvPoke cup.
 
 **Usage:**
 
 ```bash
-./poke-create-files.sh
+./cup-rename.sh oldname newname
+```
+
+### Cup File Generation
+
+#### `poke-create-files.sh`
+
+Generates the files required to build a custom PvPoke meta.
+
+**Usage:**
+
+```bash
+./poke-create-files.sh [--json-file <filename>]
+```
+
+#### `poke-create-meta-threat-group.sh`
+
+Creates a 'meta threat group' JSON file by filtering a cup's override file.
+
+**Usage:**
+
+```bash
+./poke-create-meta-threat-group.sh <threat_group_file> <cup_overrides_json_file>
+```
+
+#### `poke-zip-meta.sh`
+
+Zips the files for a specified PvPoke meta, making them available for download.
+
+**Usage:**
+
+```bash
+./poke-zip-meta.sh [meta_name]
+```
+
+#### `poke-zygarden-create-json.sh`
+
+Generates a JSON configuration for Zygarden-related features based on an existing PvPoke cup's data. It can extract data from a cup name in `PVPOKE_SRC_ROOT` or directly from a zipped archive.
+
+**Usage (from PVPOKE_SRC_ROOT):**
+
+```bash
+./poke-zygarden-create-json.sh --json <cupname>
+```
+
+**Usage (from zip file):**
+
+```bash
+./poke-zygarden-create-json.sh --zip <zipfile>
+```
+
+### Validation Scripts
+
+#### `pvpoke-cup-validator.py`
+
+Validates a PvPoke cup JSON file against the gamemaster data to ensure all mentioned species and moves exist.
+
+**Usage:**
+
+```bash
+PVPOKE_SRC_ROOT=/path/to/src ./pvpoke-cup-validator.py <cup_json_path>
+```
+
+#### `pvpoke-rankings-sanity-check.py`
+
+Validates PvPoke CSV rankings against a cup JSON file for inclusion/exclusion rules. It uses `PVPOKE_SRC_ROOT` to locate `gamemaster.json` and `moves.json`.
+
+**Usage:**
+
+```bash
+PVPOKE_SRC_ROOT=/path/to/src ./pvpoke-rankings-sanity-check.py [-v] <csv_path> <cup_json_path>
+```
+
+#### `pvpoke-zip-validator.py`
+
+Validates a zipped cup archive, checking file structure, and ensuring all species and moves in the rankings and overrides are valid and adhere to the cup's rules.
+
+**Usage:**
+
+```bash
+PVPOKE_SRC_ROOT=/path/to/src ./pvpoke-zip-validator.py <zip_file_path>
+```
+
+### Utility Scripts
+
+#### `pvpoke-resolve-conflicts.sh`
+
+Automates the resolution of common git merge conflicts in the pvpoke repository.
+
+**Usage:**
+
+```bash
+./pvpoke-resolve-conflicts.sh
 ```
 
 ## Disclaimer
