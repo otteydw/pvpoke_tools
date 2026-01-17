@@ -5,7 +5,7 @@ This repository contains a set of shell scripts for managing "cups" (custom meta
 ## Prerequisites
 
 - **[jq](https://stedolan.github.io/jq/):** A lightweight and flexible command-line JSON processor. This is required for manipulating the JSON files that define the cups.
-- **[rpl](https://github.com/vrocher/rpl):** A command-line utility to replace strings in files. This is used in the `poke-create-files.sh` script.
+- **[rpl](https://github.io/vrocher/rpl):** A command-line utility to replace strings in files. This is used in the `poke-create-files.sh` script.
 - **Python 3:** With `requests` and `pandas` libraries for the validation scripts.
 
 ## Configuration
@@ -27,16 +27,21 @@ Here is a list of the available scripts and their primary functions:
 #### `cup-clone.sh`
 
 Clones an existing PvPoke cup to a new one.
+
 **Usage:** `./cup-clone.sh oldname newname`
 
 #### `cup-delete.sh`
 
 Deletes an existing PvPoke cup.
-**Usage:** `./cup-delete.sh cupname`
+
+```shell
+./cup-delete.sh cupname
+```
 
 #### `cup-rename.sh`
 
 Renames an existing PvPoke cup.
+
 **Usage:** `./cup-rename.sh oldname newname`
 
 ### Cup File Generation
@@ -44,38 +49,46 @@ Renames an existing PvPoke cup.
 #### `poke-create-files.sh`
 
 Generates the files required to build a custom PvPoke meta.
+
 **Usage:** `./poke-create-files.sh [--json-file <filename>]`
 
 #### `poke-create-meta-threat-group.sh`
 
 Creates a 'meta threat group' JSON file by filtering a cup's override file.
+
 **Usage:** `./poke-create-meta-threat-group.sh <threat_group_file> <cup_overrides_json_file>`
 
 #### `poke-zip-meta.sh`
 
 Zips the files for a specified PvPoke meta, making them available for download.
+
 **Usage:** `./poke-zip-meta.sh [meta_name]`
 
 #### `poke-zygarden-create-json.sh`
 
-Generates a JSON configuration for Zygarden-related features based on an existing PvPoke cup's data.
-**Usage:** `./poke-zygarden-create-json.sh <cupname>`
+Generates a JSON configuration for Zygarden-related features based on an existing PvPoke cup's data. It can extract data from a cup name in `PVPOKE_SRC_ROOT` or directly from a zipped archive.
+
+**Usage (from PVPOKE_SRC_ROOT):** `./poke-zygarden-create-json.sh --json <cupname>`
+**Usage (from zip file):** `./poke-zygarden-create-json.sh --zip <zipfile>`
 
 ### Validation Scripts
 
 #### `pvpoke-cup-validator.py`
 
 Validates a PvPoke cup JSON file against the gamemaster data to ensure all mentioned species and moves exist.
+
 **Usage:** `PVPOKE_SRC_ROOT=/path/to/src ./pvpoke-cup-validator.py <cup_json_path>`
 
 #### `pvpoke-rankings-sanity-check.py`
 
-Validates PvPoke CSV rankings against a cup JSON file for inclusion/exclusion rules.
+Validates PvPoke CSV rankings against a cup JSON file for inclusion/exclusion rules. It uses `PVPOKE_SRC_ROOT` to locate `gamemaster.json` and `moves.json`.
+
 **Usage:** `PVPOKE_SRC_ROOT=/path/to/src ./pvpoke-rankings-sanity-check.py <csv_path> <cup_json_path>`
 
 #### `pvpoke-zip-validator.py`
 
 Validates a zipped cup archive, checking file structure, and ensuring all species and moves in the rankings and overrides are valid and adhere to the cup's rules.
+
 **Usage:** `PVPOKE_SRC_ROOT=/path/to/src ./pvpoke-zip-validator.py <zip_file_path>`
 
 ### Utility Scripts
@@ -83,6 +96,7 @@ Validates a zipped cup archive, checking file structure, and ensuring all specie
 #### `pvpoke-resolve-conflicts.sh`
 
 Automates the resolution of common git merge conflicts in the pvpoke repository.
+
 **Usage:** `./pvpoke-resolve-conflicts.sh`
 
 ## Disclaimer
