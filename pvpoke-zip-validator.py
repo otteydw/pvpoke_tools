@@ -69,6 +69,68 @@ def get_pokemon_and_moves_from_data_file(data: Any) -> tuple[Set[str], Set[str]]
     return pokemon_ids, move_ids
 
 
+def _validate_data_file(
+    file_path: str,
+    display_path: str,
+    gamemaster_species_ids: Set[str],
+    gamemaster_all_move_ids: Set[str],
+    required_species: Set[str],
+    forbidden_species: Set[str],
+    forbidden_moves: Set[str],
+) -> bool:
+    """Validates a single data file (override or ranking) against all rules.
+
+    Returns True if the file is valid, False otherwise.
+    """
+    print(f"  Processing {display_path}")
+
+    data = load_json_file(file_path)
+    pokemon_ids, move_ids = get_pokemon_and_moves_from_data_file(data)
+
+    # Required species check
+    if required_species:
+        missing_species = required_species - pokemon_ids
+        if missing_species:
+            print(f"    ❌ ERROR: Missing required species in {display_path}:")
+            for species_id in sorted(list(missing_species)):
+                print(f"       - {species_id}")
+            return False
+
+    # Species validation
+    unknown_species = pokemon_ids - gamemaster_species_ids
+    if unknown_species:
+        print(f"    ❌ ERROR: Unknown species in {display_path}:")
+        for species_id in sorted(list(unknown_species)):
+            print(f"       - {species_id}")
+        return False
+
+    # Move validation
+    unknown_moves = move_ids - gamemaster_all_move_ids
+    if unknown_moves:
+        print(f"    ❌ ERROR: Unknown moves in {display_path}:")
+        for move_id in sorted(list(unknown_moves)):
+            print(f"       - {move_id}")
+        return False
+
+    # Forbidden species check
+    forbidden_species_found = forbidden_species.intersection(pokemon_ids)
+    if forbidden_species_found:
+        print(f"    ❌ ERROR: Forbidden species found in {display_path}:")
+        for species_id in sorted(list(forbidden_species_found)):
+            print(f"       - {species_id}")
+        return False
+
+    # Forbidden move check
+    forbidden_moves_found = forbidden_moves.intersection(move_ids)
+    if forbidden_moves_found:
+        print(f"    ❌ ERROR: Forbidden moves found in {display_path}:")
+        for move_id in sorted(list(forbidden_moves_found)):
+            print(f"       - {move_id}")
+        return False
+
+    return True
+
+
 def _validate_overrides(
     cup_shortname: str,
     overrides_base_path: str,
@@ -92,50 +154,16 @@ def _validate_overrides(
     ]
 
     for ov_file in overrides_files:
-        print(f"  Processing {os.path.basename(ov_file)}")
-        overrides_data = load_json_file(ov_file)
-        override_pokemon_ids, override_move_ids = get_pokemon_and_moves_from_data_file(overrides_data)
-
-        # Required species check
-        if required_species:
-            missing_species = required_species - override_pokemon_ids
-            if missing_species:
-                all_valid = False
-                print(f"    ❌ ERROR: Missing required species in {os.path.basename(ov_file)}:")
-                for species_id in sorted(list(missing_species)):
-                    print(f"       - {species_id}")
-
-        # Species validation
-        unknown_override_species = override_pokemon_ids - gamemaster_species_ids
-        if unknown_override_species:
+        if not _validate_data_file(
+            file_path=ov_file,
+            display_path=os.path.basename(ov_file),
+            gamemaster_species_ids=gamemaster_species_ids,
+            gamemaster_all_move_ids=gamemaster_all_move_ids,
+            required_species=required_species,
+            forbidden_species=forbidden_species,
+            forbidden_moves=forbidden_moves,
+        ):
             all_valid = False
-            print(f"    ❌ ERROR: Unknown species in {os.path.basename(ov_file)}:")
-            for species_id in sorted(list(unknown_override_species)):
-                print(f"       - {species_id}")
-
-        # Move validation
-        unknown_override_moves = override_move_ids - gamemaster_all_move_ids
-        if unknown_override_moves:
-            all_valid = False
-            print(f"    ❌ ERROR: Unknown moves in {os.path.basename(ov_file)}:")
-            for move_id in sorted(list(unknown_override_moves)):
-                print(f"       - {move_id}")
-
-        # Forbidden species check
-        forbidden_ov_species_found = forbidden_species.intersection(override_pokemon_ids)
-        if forbidden_ov_species_found:
-            all_valid = False
-            print(f"    ❌ ERROR: Forbidden species found in {os.path.basename(ov_file)}:")
-            for species_id in sorted(list(forbidden_ov_species_found)):
-                print(f"       - {species_id}")
-
-        # Forbidden move check
-        forbidden_ov_moves_found = forbidden_moves.intersection(override_move_ids)
-        if forbidden_ov_moves_found:
-            all_valid = False
-            print(f"    ❌ ERROR: Forbidden moves found in {os.path.basename(ov_file)}:")
-            for move_id in sorted(list(forbidden_ov_moves_found)):
-                print(f"       - {move_id}")
 
     return all_valid
 
@@ -159,52 +187,16 @@ def _validate_rankings(
         for file in files:
             if file.endswith(".json"):
                 ranking_file_path = os.path.join(root, file)
-                ranking_file_rel_path = os.path.relpath(ranking_file_path, rankings_base_path)
-                print(f"  Processing {ranking_file_rel_path}")
-
-                ranking_data = load_json_file(ranking_file_path)
-                ranked_pokemon_ids, ranked_move_ids = get_pokemon_and_moves_from_data_file(ranking_data)
-
-                # Required species check
-                if required_species:
-                    missing_species = required_species - ranked_pokemon_ids
-                    if missing_species:
-                        all_valid = False
-                        print(f"    ❌ ERROR: Missing required species in {ranking_file_rel_path}:")
-                        for species_id in sorted(list(missing_species)):
-                            print(f"       - {species_id}")
-
-                # Species validation
-                unknown_ranked_species = ranked_pokemon_ids - gamemaster_species_ids
-                if unknown_ranked_species:
+                if not _validate_data_file(
+                    file_path=ranking_file_path,
+                    display_path=os.path.relpath(ranking_file_path, rankings_base_path),
+                    gamemaster_species_ids=gamemaster_species_ids,
+                    gamemaster_all_move_ids=gamemaster_all_move_ids,
+                    required_species=required_species,
+                    forbidden_species=forbidden_species,
+                    forbidden_moves=forbidden_moves,
+                ):
                     all_valid = False
-                    print(f"    ❌ ERROR: Unknown species in {ranking_file_rel_path}:")
-                    for species_id in sorted(list(unknown_ranked_species)):
-                        print(f"       - {species_id}")
-
-                # Move validation
-                unknown_ranked_moves = ranked_move_ids - gamemaster_all_move_ids
-                if unknown_ranked_moves:
-                    all_valid = False
-                    print(f"    ❌ ERROR: Unknown moves in {ranking_file_rel_path}:")
-                    for move_id in sorted(list(unknown_ranked_moves)):
-                        print(f"       - {move_id}")
-
-                # Forbidden species check
-                forbidden_ranked_species_found = forbidden_species.intersection(ranked_pokemon_ids)
-                if forbidden_ranked_species_found:
-                    all_valid = False
-                    print(f"    ❌ ERROR: Forbidden species found in {ranking_file_rel_path}:")
-                    for species_id in sorted(list(forbidden_ranked_species_found)):
-                        print(f"       - {species_id}")
-
-                # Forbidden move check
-                forbidden_ranked_moves_found = forbidden_moves.intersection(ranked_move_ids)
-                if forbidden_ranked_moves_found:
-                    all_valid = False
-                    print(f"    ❌ ERROR: Forbidden moves found in {ranking_file_rel_path}:")
-                    for move_id in sorted(list(forbidden_ranked_moves_found)):
-                        print(f"       - {move_id}")
     return all_valid
 
 
