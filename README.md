@@ -121,7 +121,7 @@ Validates PvPoke CSV rankings against a cup JSON file for inclusion/exclusion ru
 **Usage:**
 
 ```bash
-PVPOKE_SRC_ROOT=/path/to/src ./pvpoke-rankings-sanity-check.py <csv_path> <cup_json_path>
+PVPOKE_SRC_ROOT=/path/to/src ./pvpoke-rankings-sanity-check.py [-v] <csv_path> <cup_json_path>
 ```
 
 #### `pvpoke-zip-validator.py`
