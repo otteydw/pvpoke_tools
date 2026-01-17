@@ -6,10 +6,11 @@ This repository contains a set of shell scripts for managing "cups" (custom meta
 
 - **[jq](https://stedolan.github.io/jq/):** A lightweight and flexible command-line JSON processor. This is required for manipulating the JSON files that define the cups.
 - **[rpl](https://github.com/vrocher/rpl):** A command-line utility to replace strings in files. This is used in the `poke-create-files.sh` script.
+- **Python 3:** With `requests` and `pandas` libraries for the validation scripts.
 
 ## Configuration
 
-The scripts expect a `PVPOKE_SRC_ROOT` environment variable to be set to the root directory of your PvPoke source code. If this variable is not set, it defaults to `/var/www/builder.devon.gg/public_html/pvpoke/src`.
+Some scripts expect a `PVPOKE_SRC_ROOT` environment variable to be set to the root directory of your PvPoke source code. If this variable is not set, those scripts will fail.
 
 You can set this variable in your shell's configuration file (e.g., `~/.bashrc`, `~/.zshrc`) or export it before running the scripts:
 
@@ -21,55 +22,68 @@ export PVPOKE_SRC_ROOT="/path/to/your/pvpoke/src"
 
 Here is a list of the available scripts and their primary functions:
 
-### `clone-cup.sh`
+### Cup Management
+
+#### `cup-clone.sh`
 
 Clones an existing PvPoke cup to a new one.
-**Usage:** `./clone-cup.sh oldname newname`
+**Usage:** `./cup-clone.sh oldname newname`
 
-### `delete-cup.sh`
+#### `cup-delete.sh`
 
 Deletes an existing PvPoke cup.
-**Usage:** `./delete-cup.sh cupname`
+**Usage:** `./cup-delete.sh cupname`
 
-### `poke-create-files.sh`
+#### `cup-rename.sh`
+
+Renames an existing PvPoke cup.
+**Usage:** `./cup-rename.sh oldname newname`
+
+### Cup File Generation
+
+#### `poke-create-files.sh`
 
 Generates the files required to build a custom PvPoke meta.
 **Usage:** `./poke-create-files.sh [--json-file <filename>]`
 
-### `poke-create-meta-threat-group.sh`
+#### `poke-create-meta-threat-group.sh`
 
-Creates a 'meta threat group' JSON file by filtering Pokémon data.
-**Usage:** `./poke-create-meta-threat-group.sh <threat_group_file> <pokemon_json_file>`
+Creates a 'meta threat group' JSON file by filtering a cup's override file.
+**Usage:** `./poke-create-meta-threat-group.sh <threat_group_file> <cup_overrides_json_file>`
 
-### `poke-zip-meta.sh`
+#### `poke-zip-meta.sh`
 
 Zips the files for a specified PvPoke meta, making them available for download.
 **Usage:** `./poke-zip-meta.sh [meta_name]`
 
-### `poke-zygarden-create-json.sh`
+#### `poke-zygarden-create-json.sh`
 
-Generates a JSON configuration for Zygarde-related features based on an existing PvPoke cup's data.
+Generates a JSON configuration for Zygarden-related features based on an existing PvPoke cup's data.
 **Usage:** `./poke-zygarden-create-json.sh <cupname>`
 
-### `pvpoke-resolve-conflicts.sh`
+### Validation Scripts
+
+#### `pvpoke-cup-validator.py`
+
+Validates a PvPoke cup JSON file against the gamemaster data to ensure all mentioned species and moves exist.
+**Usage:** `PVPOKE_SRC_ROOT=/path/to/src ./pvpoke-cup-validator.py <cup_json_path>`
+
+#### `pvpoke-rankings-sanity-check.py`
+
+Validates PvPoke CSV rankings against a cup JSON file for inclusion/exclusion rules.
+**Usage:** `PVPOKE_SRC_ROOT=/path/to/src ./pvpoke-rankings-sanity-check.py <csv_path> <cup_json_path>`
+
+#### `pvpoke-zip-validator.py`
+
+Validates a zipped cup archive, checking file structure, and ensuring all species and moves in the rankings and overrides are valid and adhere to the cup's rules.
+**Usage:** `PVPOKE_SRC_ROOT=/path/to/src ./pvpoke-zip-validator.py <zip_file_path>`
+
+### Utility Scripts
+
+#### `pvpoke-resolve-conflicts.sh`
 
 Automates the resolution of common git merge conflicts in the pvpoke repository.
 **Usage:** `./pvpoke-resolve-conflicts.sh`
-
-### `pvpoke-cup-validator.py`
-
-Validates a PvPoke cup JSON file against the gamemaster data to ensure all mentioned species exist.
-**Usage:** `./pvpoke-cup-validator.py <cup_json_path> <gamemaster_json_path>`
-
-### `pvpoke-rankings-sanity-check.py`
-
-Validates PvPoke CSV rankings against a cup JSON file for inclusion/exclusion rules.
-**Usage:** `./pvpoke-rankings-sanity-check.py <csv_path> <cup_json_path> <gamemaster_json_path>`
-
-### `rename-cup.sh`
-
-Renames an existing PvPoke cup.
-**Usage:** `./rename-cup.sh oldname newname`
 
 ## Disclaimer
 
