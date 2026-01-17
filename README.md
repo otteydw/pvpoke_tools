@@ -1,6 +1,6 @@
 # PvPoke Cup Management Scripts
 
-This repository contains a set of shell scripts for managing "cups" (custom metas) for a [PvPoke](https://pvpoke.com/) instance. These scripts help automate the creation, cloning, renaming, and deletion of cup configurations, which include JSON files, rankings, and overrides.
+This repository contains a set of scripts for managing "cups" (custom metas) for a [PvPoke](https://pvpoke.com/) instance. These scripts help automate the creation, cloning, renaming, and deletion of cup configurations, which include JSON files, rankings, and overrides.
 
 ## Prerequisites
 
