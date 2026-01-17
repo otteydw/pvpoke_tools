@@ -6,6 +6,8 @@
 
 import argparse
 import json
+import os
+import sys
 from typing import Any, Dict, List, Set
 
 import pandas as pd
@@ -79,21 +81,22 @@ def main():
         "csv_path", help="Path to the PvPoke CSV rankings file (e.g., cp1500_modifiedlove_overall_rankings.csv)."
     )
     parser.add_argument("cup_json_path", help="Path to the cup JSON file (e.g., modifiedlove.json).")
-    parser.add_argument(
-        "gamemaster_json_path",
-        help="Path to the gamemaster JSON file (e.g., gamemaster.json).",
-        # Not strictly used in this simplest form, but required by prompt.
-    )
-    parser.add_argument("moves_json_path", help="Path to the moves JSON file (e.g., moves.json).")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output for debugging.")
 
     args = parser.parse_args()
 
-    global VERBOSE_LOGGING
-    VERBOSE_LOGGING = args.verbose
+    pvpoke_src_root = os.environ.get("PVPOKE_SRC_ROOT")
+    if not pvpoke_src_root:
+        print("❌ ERROR: PVPOKE_SRC_ROOT environment variable is not set.", file=sys.stderr)
+        print("Please set it to the absolute path of your pvpoke/src directory, e.g.:", file=sys.stderr)
+        print("  export PVPOKE_SRC_ROOT=/Users/dottey/git/personal/pvpoke/src", file=sys.stderr)
+        exit(1)
+
+    gamemaster_json_path = os.path.join(pvpoke_src_root, "data", "gamemaster.json")
+    moves_json_path = os.path.join(pvpoke_src_root, "data", "gamemaster", "moves.json")
 
     # Load data
-    gamemaster_data = load_json_file(args.gamemaster_json_path)
+    gamemaster_data = load_json_file(gamemaster_json_path)
     cup_data = load_json_file(args.cup_json_path)
 
     # Create species_name_to_id_map from gamemaster
@@ -107,7 +110,7 @@ def main():
     if not pokemon_entries:
         print(
             f"❌ ERROR: Could not find 'pokemon' array or valid entries in gamemaster JSON "
-            f"at '{args.gamemaster_json_path}'. Aborting."
+            f"at '{gamemaster_json_path}'. Aborting."
         )
         exit(1)
 
@@ -161,7 +164,7 @@ def main():
         print("✅ No forbidden Pokémon are present in the CSV rankings.")
 
     # Load moves data
-    moves_data = load_json_file(args.moves_json_path)
+    moves_data = load_json_file(moves_json_path)
 
     # Create move_name_to_id_map from gamemaster
     move_name_to_id_map: Dict[str, str] = {}
@@ -194,7 +197,7 @@ def main():
     # Load moves from CSV
     csv_ranked_moves_ids = load_csv_moves(args.csv_path, move_name_to_id_map)
 
-    if VERBOSE_LOGGING:
+    if args.verbose:
         print(f"DEBUG: csv_ranked_moves: {csv_ranked_moves_ids}")
         print(f"DEBUG: forbidden_moves_from_cup: {forbidden_moves_from_cup}")
 
