@@ -8,6 +8,7 @@ import json
 import os
 import tempfile
 import zipfile
+from functools import partial
 from typing import Any, Dict, Set
 
 
@@ -68,7 +69,7 @@ def get_pokemon_and_moves_from_data_file(data: Any) -> tuple[Set[str], Set[str]]
 
 def _validate_data_file(
     file_path: str,
-    display_path: str,
+    base_path: str,
     gamemaster_species_ids: Set[str],
     gamemaster_all_move_ids: Set[str],
     required_species: Set[str],
@@ -79,6 +80,7 @@ def _validate_data_file(
 
     Returns True if the file is valid, False otherwise.
     """
+    display_path = os.path.relpath(file_path, base_path)
     print(f"  Processing {display_path}")
 
     data = load_json_file(file_path)
@@ -150,16 +152,18 @@ def _validate_overrides(
         os.path.join(overrides_base_path, f) for f in os.listdir(overrides_base_path) if f.endswith(".json")
     ]
 
+    validator = partial(
+        _validate_data_file,
+        base_path=overrides_base_path,
+        gamemaster_species_ids=gamemaster_species_ids,
+        gamemaster_all_move_ids=gamemaster_all_move_ids,
+        required_species=required_species,
+        forbidden_species=forbidden_species,
+        forbidden_moves=forbidden_moves,
+    )
+
     for ov_file in overrides_files:
-        if not _validate_data_file(
-            file_path=ov_file,
-            display_path=os.path.basename(ov_file),
-            gamemaster_species_ids=gamemaster_species_ids,
-            gamemaster_all_move_ids=gamemaster_all_move_ids,
-            required_species=required_species,
-            forbidden_species=forbidden_species,
-            forbidden_moves=forbidden_moves,
-        ):
+        if not validator(file_path=ov_file):
             all_valid = False
 
     return all_valid
@@ -180,19 +184,22 @@ def _validate_rankings(
     """
     all_valid = True
     print(f"\n--- Validating Rankings for {cup_shortname} ---")
+
+    validator = partial(
+        _validate_data_file,
+        base_path=rankings_base_path,
+        gamemaster_species_ids=gamemaster_species_ids,
+        gamemaster_all_move_ids=gamemaster_all_move_ids,
+        required_species=required_species,
+        forbidden_species=forbidden_species,
+        forbidden_moves=forbidden_moves,
+    )
+
     for root, _, files in os.walk(rankings_base_path):
         for file in files:
             if file.endswith(".json"):
                 ranking_file_path = os.path.join(root, file)
-                if not _validate_data_file(
-                    file_path=ranking_file_path,
-                    display_path=os.path.relpath(ranking_file_path, rankings_base_path),
-                    gamemaster_species_ids=gamemaster_species_ids,
-                    gamemaster_all_move_ids=gamemaster_all_move_ids,
-                    required_species=required_species,
-                    forbidden_species=forbidden_species,
-                    forbidden_moves=forbidden_moves,
-                ):
+                if not validator(file_path=ranking_file_path):
                     all_valid = False
     return all_valid
 
