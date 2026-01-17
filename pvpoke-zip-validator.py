@@ -69,6 +69,209 @@ def get_pokemon_and_moves_from_data_file(data: Any) -> tuple[Set[str], Set[str]]
     return pokemon_ids, move_ids
 
 
+def _validate_overrides(
+    cup_shortname: str,
+    overrides_base_path: str,
+    gamemaster_species_ids: Set[str],
+    gamemaster_all_move_ids: Set[str],
+    forbidden_species: Set[str],
+    forbidden_moves: Set[str],
+) -> bool:
+    """Validates all override files for a given cup.
+
+    Returns True if all overrides are valid, False otherwise.
+    """
+    all_valid = True
+    print(f"\n--- Validating Overrides for {cup_shortname} ---")
+    if not os.path.exists(overrides_base_path):
+        return True  # No overrides to validate
+
+    overrides_files = [
+        os.path.join(overrides_base_path, f) for f in os.listdir(overrides_base_path) if f.endswith(".json")
+    ]
+
+    for ov_file in overrides_files:
+        print(f"  Processing {os.path.basename(ov_file)}")
+        overrides_data = load_json_file(ov_file)
+        override_pokemon_ids, override_move_ids = get_pokemon_and_moves_from_data_file(overrides_data)
+
+        # Species validation
+        unknown_override_species = override_pokemon_ids - gamemaster_species_ids
+        if unknown_override_species:
+            all_valid = False
+            print(f"    ❌ ERROR: Unknown species in {os.path.basename(ov_file)}:")
+            for species_id in sorted(list(unknown_override_species)):
+                print(f"       - {species_id}")
+
+        # Move validation
+        unknown_override_moves = override_move_ids - gamemaster_all_move_ids
+        if unknown_override_moves:
+            all_valid = False
+            print(f"    ❌ ERROR: Unknown moves in {os.path.basename(ov_file)}:")
+            for move_id in sorted(list(unknown_override_moves)):
+                print(f"       - {move_id}")
+
+        # Forbidden species check
+        forbidden_ov_species_found = forbidden_species.intersection(override_pokemon_ids)
+        if forbidden_ov_species_found:
+            all_valid = False
+            print(f"    ❌ ERROR: Forbidden species found in {os.path.basename(ov_file)}:")
+            for species_id in sorted(list(forbidden_ov_species_found)):
+                print(f"       - {species_id}")
+
+        # Forbidden move check
+        forbidden_ov_moves_found = forbidden_moves.intersection(override_move_ids)
+        if forbidden_ov_moves_found:
+            all_valid = False
+            print(f"    ❌ ERROR: Forbidden moves found in {os.path.basename(ov_file)}:")
+            for move_id in sorted(list(forbidden_ov_moves_found)):
+                print(f"       - {move_id}")
+
+    return all_valid
+
+
+def _validate_rankings(
+    cup_shortname: str,
+    rankings_base_path: str,
+    gamemaster_species_ids: Set[str],
+    gamemaster_all_move_ids: Set[str],
+    forbidden_species: Set[str],
+    forbidden_moves: Set[str],
+) -> bool:
+    """Validates all ranking files for a given cup.
+
+    Returns True if all rankings are valid, False otherwise.
+    """
+    all_valid = True
+    print(f"\n--- Validating Rankings for {cup_shortname} ---")
+    for root, _, files in os.walk(rankings_base_path):
+        for file in files:
+            if file.endswith(".json"):
+                ranking_file_path = os.path.join(root, file)
+                print(f"  Processing {os.path.relpath(ranking_file_path, rankings_base_path)}")
+
+                ranking_data = load_json_file(ranking_file_path)
+                ranked_pokemon_ids, ranked_move_ids = get_pokemon_and_moves_from_data_file(ranking_data)
+
+                # Species validation
+                unknown_ranked_species = ranked_pokemon_ids - gamemaster_species_ids
+                if unknown_ranked_species:
+                    all_valid = False
+                    ranking_file_rel_path = os.path.relpath(ranking_file_path, rankings_base_path)
+                    print(f"    ❌ ERROR: Unknown species in {ranking_file_rel_path}:")
+                    for species_id in sorted(list(unknown_ranked_species)):
+                        print(f"       - {species_id}")
+
+                # Move validation
+                unknown_ranked_moves = ranked_move_ids - gamemaster_all_move_ids
+                if unknown_ranked_moves:
+                    all_valid = False
+                    print(f"    ❌ ERROR: Unknown moves in {os.path.relpath(ranking_file_path, rankings_base_path)}:")
+                    for move_id in sorted(list(unknown_ranked_moves)):
+                        print(f"       - {move_id}")
+
+                # Forbidden species check
+                forbidden_ranked_species_found = forbidden_species.intersection(ranked_pokemon_ids)
+                if forbidden_ranked_species_found:
+                    all_valid = False
+                    ranking_file_rel_path = os.path.relpath(ranking_file_path, rankings_base_path)
+                    print(f"    ❌ ERROR: Forbidden species found in {ranking_file_rel_path}:")
+                    for species_id in sorted(list(forbidden_ranked_species_found)):
+                        print(f"       - {species_id}")
+
+                # Forbidden move check
+                forbidden_ranked_moves_found = forbidden_moves.intersection(ranked_move_ids)
+                if forbidden_ranked_moves_found:
+                    all_valid = False
+                    ranking_file_rel_path = os.path.relpath(ranking_file_path, rankings_base_path)
+                    print(f"    ❌ ERROR: Forbidden moves found in {ranking_file_rel_path}:")
+                    for move_id in sorted(list(forbidden_ranked_moves_found)):
+                        print(f"       - {move_id}")
+    return all_valid
+
+
+def _run_validation_process(args: argparse.Namespace, pvpoke_src_root: str) -> bool:
+    """Runs the entire validation process for a given zip file.
+
+    Returns True if the validation passes, False otherwise.
+    """
+    gamemaster_pokemon_path = os.path.join(pvpoke_src_root, "data", "gamemaster", "pokemon.json")
+    gamemaster_moves_path = os.path.join(pvpoke_src_root, "data", "gamemaster", "moves.json")
+
+    # Validate that gamemaster files exist
+    if not os.path.exists(gamemaster_pokemon_path):
+        print(
+            f"Error: Gamemaster pokemon.json not found at '{gamemaster_pokemon_path}'. "
+            "Please ensure PVPOKE_SRC_ROOT is correctly set and the file exists."
+        )
+        return False
+    if not os.path.exists(gamemaster_moves_path):
+        print(
+            f"Error: Gamemaster moves.json not found at '{gamemaster_moves_path}'. "
+            "Please ensure PVPOKE_SRC_ROOT is correctly set and the file exists."
+        )
+        return False
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        print(f"Unzipping {args.zip_file} to temporary directory: {temp_dir}")
+
+        with zipfile.ZipFile(args.zip_file, "r") as zip_ref:
+            zip_ref.extractall(temp_dir)
+
+        cup_shortname = ""
+        for item in os.listdir(temp_dir):
+            if os.path.isdir(os.path.join(temp_dir, item)):
+                cup_shortname = item
+                break
+
+        if not cup_shortname:
+            print("Error: Could not determine cup shortname from zip archive structure.")
+            return False
+
+        print(f"Detected cup shortname: {cup_shortname}")
+
+        cup_file_path = os.path.join(temp_dir, cup_shortname, "cupfile", f"{cup_shortname}.json")
+        overrides_base_path = os.path.join(temp_dir, cup_shortname, "overrides", cup_shortname)
+        rankings_base_path = os.path.join(temp_dir, cup_shortname, "rankings", cup_shortname)
+
+        if not os.path.exists(cup_file_path):
+            print(f"Error: Cup definition file not found at {cup_file_path}")
+            return False
+
+        gamemaster_pokemon_data = load_json_file(gamemaster_pokemon_path)
+        gamemaster_moves_data = load_json_file(gamemaster_moves_path)
+
+        gamemaster_species_ids: Set[str] = {
+            entry["speciesId"] for entry in gamemaster_pokemon_data if "speciesId" in entry
+        }
+        gamemaster_all_move_ids: Set[str] = {
+            entry["moveId"].upper() for entry in gamemaster_moves_data if "moveId" in entry
+        }
+
+        cup_definition = load_json_file(cup_file_path)
+        _, forbidden_species, _, forbidden_moves = extract_cup_data_from_json(cup_definition)
+
+        overrides_valid = _validate_overrides(
+            cup_shortname,
+            overrides_base_path,
+            gamemaster_species_ids,
+            gamemaster_all_move_ids,
+            forbidden_species,
+            forbidden_moves,
+        )
+
+        rankings_valid = _validate_rankings(
+            cup_shortname,
+            rankings_base_path,
+            gamemaster_species_ids,
+            gamemaster_all_move_ids,
+            forbidden_species,
+            forbidden_moves,
+        )
+
+        return overrides_valid and rankings_valid
+
+
 def main():
     """Main function to parse arguments and run the validation process."""
     parser = argparse.ArgumentParser(description="Validate PvPoke cup data within a zip archive against cup rules.")
@@ -86,177 +289,15 @@ def main():
         )
         exit(1)
 
-    gamemaster_pokemon_path = os.path.join(pvpoke_src_root, "data", "gamemaster", "pokemon.json")
-    gamemaster_moves_path = os.path.join(pvpoke_src_root, "data", "gamemaster", "moves.json")
+    all_valid = _run_validation_process(args, pvpoke_src_root)
 
-    # Validate that gamemaster files exist
-    if not os.path.exists(gamemaster_pokemon_path):
-        print(
-            f"Error: Gamemaster pokemon.json not found at '{gamemaster_pokemon_path}'. "
-            "Please ensure PVPOKE_SRC_ROOT is correctly set and the file exists."
-        )
+    print("\n--- Summary ---")
+    if all_valid:
+        print("✅ Zip archive validation PASSED: All cup data is valid.")
+        exit(0)
+    else:
+        print("❌ Zip archive validation FAILED: Discrepancies found.")
         exit(1)
-    if not os.path.exists(gamemaster_moves_path):
-        print(
-            f"Error: Gamemaster moves.json not found at '{gamemaster_moves_path}'. "
-            "Please ensure PVPOKE_SRC_ROOT is correctly set and the file exists."
-        )
-        exit(1)
-
-    # Create a temporary directory
-    with tempfile.TemporaryDirectory() as temp_dir:
-        print(f"Unzipping {args.zip_file} to temporary directory: {temp_dir}")
-
-        # 1. Unzip the file
-        with zipfile.ZipFile(args.zip_file, "r") as zip_ref:
-            zip_ref.extractall(temp_dir)
-
-        # 2. Dynamically determine the cup shortname
-        # Assumes zip contains a single root directory named after the cup
-        cup_shortname = ""
-        for item in os.listdir(temp_dir):
-            if os.path.isdir(os.path.join(temp_dir, item)):
-                cup_shortname = item
-                break
-
-        if not cup_shortname:
-            print("Error: Could not determine cup shortname from zip archive structure.")
-            exit(1)
-
-        print(f"Detected cup shortname: {cup_shortname}")
-
-        # Construct paths to relevant files
-        cup_file_path = os.path.join(temp_dir, cup_shortname, "cupfile", f"{cup_shortname}.json")
-        overrides_base_path = os.path.join(temp_dir, cup_shortname, "overrides", cup_shortname)
-        rankings_base_path = os.path.join(temp_dir, cup_shortname, "rankings", cup_shortname)
-
-        # Ensure paths exist
-        if not os.path.exists(cup_file_path):
-            print(f"Error: Cup definition file not found at {cup_file_path}")
-            exit(1)
-
-        # Load gamemaster data for full validation
-        gamemaster_pokemon_data = load_json_file(gamemaster_pokemon_path)
-        gamemaster_moves_data = load_json_file(gamemaster_moves_path)
-
-        # Create gamemaster species and move ID sets
-        gamemaster_species_ids: Set[str] = set()
-        for entry in gamemaster_pokemon_data:
-            species_id = entry.get("speciesId")
-            if species_id:
-                gamemaster_species_ids.add(species_id)
-
-        gamemaster_all_move_ids: Set[str] = set()
-        for entry in gamemaster_moves_data:
-            move_id = entry.get("moveId")
-            if move_id:
-                gamemaster_all_move_ids.add(move_id.upper())  # Ensure uppercase for consistent comparison
-
-        # Load cup definition
-        cup_definition = load_json_file(cup_file_path)
-
-        required_species, forbidden_species, required_moves, forbidden_moves = extract_cup_data_from_json(
-            cup_definition
-        )
-
-        all_valid = True
-
-        # Validate overrides file
-        print(f"\n--- Validating Overrides for {cup_shortname} ---")
-        overrides_files = [
-            os.path.join(overrides_base_path, f) for f in os.listdir(overrides_base_path) if f.endswith(".json")
-        ]
-
-        for ov_file in overrides_files:
-            print(f"  Processing {os.path.basename(ov_file)}")
-            overrides_data = load_json_file(ov_file)
-            override_pokemon_ids, override_move_ids = get_pokemon_and_moves_from_data_file(overrides_data)
-
-            # Species validation
-            unknown_override_species = override_pokemon_ids - gamemaster_species_ids
-            if unknown_override_species:
-                all_valid = False
-                print(f"    ❌ ERROR: Unknown species in {os.path.basename(ov_file)}:")
-                for species_id in sorted(list(unknown_override_species)):
-                    print(f"       - {species_id}")
-
-            # Move validation
-            unknown_override_moves = override_move_ids - gamemaster_all_move_ids
-            if unknown_override_moves:
-                all_valid = False
-                print(f"    ❌ ERROR: Unknown moves in {os.path.basename(ov_file)}:")
-                for move_id in sorted(list(unknown_override_moves)):
-                    print(f"       - {move_id}")
-
-            # Forbidden species check
-            forbidden_ov_species_found = forbidden_species.intersection(override_pokemon_ids)
-            if forbidden_ov_species_found:
-                all_valid = False
-                print(f"    ❌ ERROR: Forbidden species found in {os.path.basename(ov_file)}:")
-                for species_id in sorted(list(forbidden_ov_species_found)):
-                    print(f"       - {species_id}")
-
-            # Forbidden move check
-            forbidden_ov_moves_found = forbidden_moves.intersection(override_move_ids)
-            if forbidden_ov_moves_found:
-                all_valid = False
-                print(f"    ❌ ERROR: Forbidden moves found in {os.path.basename(ov_file)}:")
-                for move_id in sorted(list(forbidden_ov_moves_found)):
-                    print(f"       - {move_id}")
-
-        # Validate rankings files
-        print(f"\n--- Validating Rankings for {cup_shortname} ---")
-        for root, dirs, files in os.walk(rankings_base_path):
-            for file in files:
-                if file.endswith(".json"):
-                    ranking_file_path = os.path.join(root, file)
-                    print(f"  Processing {os.path.relpath(ranking_file_path, rankings_base_path)}")
-
-                    ranking_data = load_json_file(ranking_file_path)
-                    ranked_pokemon_ids, ranked_move_ids = get_pokemon_and_moves_from_data_file(ranking_data)
-
-                    # Species validation
-                    unknown_ranked_species = ranked_pokemon_ids - gamemaster_species_ids
-                    if unknown_ranked_species:
-                        all_valid = False
-                        ranking_file_rel_path = os.path.relpath(ranking_file_path, rankings_base_path)
-                        print(f"    ❌ ERROR: Unknown species in {ranking_file_rel_path}:")
-                        for species_id in sorted(list(unknown_ranked_species)):
-                            print(f"       - {species_id}")
-
-                    # Move validation
-                    unknown_ranked_moves = ranked_move_ids - gamemaster_all_move_ids
-                    if unknown_ranked_moves:
-                        all_valid = False
-                        print(
-                            f"    ❌ ERROR: Unknown moves in {os.path.relpath(ranking_file_path, rankings_base_path)}:"
-                        )
-                        for move_id in sorted(list(unknown_ranked_moves)):
-                            print(f"       - {move_id}")
-
-                    # Forbidden species check
-                    forbidden_ranked_species_found = forbidden_species.intersection(ranked_pokemon_ids)
-                    if forbidden_ranked_species_found:
-                        all_valid = False
-                        print(f"    ❌ ERROR: Forbidden species found in {ranking_file_rel_path}:")
-                        for species_id in sorted(list(forbidden_ranked_species_found)):
-                            print(f"       - {species_id}")
-
-                    # Forbidden move check
-                    forbidden_ranked_moves_found = forbidden_moves.intersection(ranked_move_ids)
-                    if forbidden_ranked_moves_found:
-                        all_valid = False
-                        print(f"    ❌ ERROR: Forbidden moves found in {ranking_file_rel_path}:")
-                        for move_id in sorted(list(forbidden_ranked_moves_found)):
-                            print(f"       - {move_id}")
-
-        print("\n--- Summary ---")
-        if all_valid:
-            print("✅ Zip archive validation PASSED: All cup data is valid.")
-            exit(0)
-        else:
-            print("❌ Zip archive validation FAILED: Discrepancies found.")
-            exit(1)
 
 
 if __name__ == "__main__":
