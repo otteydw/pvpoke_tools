@@ -3,22 +3,22 @@ set -euo pipefail
 
 # Usage function
 usage() {
-  echo "Usage: $(basename "$0") [-h|--help] <threat_group_file> <pokemon_json_file>"
+  echo "Usage: $(basename "$0") [-h|--help] <threat_group_file> <cup_overrides_json_file>"
   echo ""
   echo "This script creates a 'meta threat group' JSON file by filtering Pokémon data."
   echo "It extracts Pokémon specified in a threat group text file from a larger JSON file."
   echo "The output is sorted alphabetically by speciesId and printed to standard output."
   echo ""
   echo "Arguments:"
-  echo "  <threat_group_file>  A path to a text file with one Pokémon speciesId per line."
-  echo "  <pokemon_json_file>  A path to a JSON file containing an array of Pokémon data."
-  echo "                       (e.g., 'pokemon.json' from pvpoke Game Master)."
+  echo "  <threat_group_file>       A path to a text file with one Pokémon speciesId per line."
+  echo "  <cup_overrides_json_file> A path to a JSON file containing an array of Pokémon data with optimal moves"
+  echo "                            (e.g., 'src/data/overrides/<cup_name>/<cp>.json')."
   echo ""
   echo "Options:"
-  echo "  -h, --help           Display this help message and exit."
+  echo "  -h, --help                Display this help message and exit."
   echo ""
   echo "Example:"
-  echo "  ./poke-create-meta-threat-group.sh my_threats.txt master/pokemon.json > threat_group.json"
+  echo "  ./poke-create-meta-threat-group.sh my_threats.txt src/data/overrides/modifiedlove/1500.json > threat_group.json"
 }
 
 # ---------------------------------------------
@@ -52,7 +52,7 @@ if [ "$#" -ne 2 ]; then
 fi
 
 THREAT_GROUP_FILE="$1"
-POKEMON_JSON_FILE="$2"
+CUP_OVERRIDES_JSON_FILE="$2"
 
 # Check if the threat group file exists
 if [ ! -f "$THREAT_GROUP_FILE" ]; then
@@ -61,8 +61,8 @@ if [ ! -f "$THREAT_GROUP_FILE" ]; then
 fi
 
 # Check if the JSON file exists
-if [ ! -f "$POKEMON_JSON_FILE" ]; then
-  echo "Error: Pokémon JSON file not found at '$POKEMON_JSON_FILE'" >&2
+if [ ! -f "$CUP_OVERRIDES_JSON_FILE" ]; then
+  echo "Error: Cup overrides JSON file not found at '$CUP_OVERRIDES_JSON_FILE'" >&2
   exit 1
 fi
 
@@ -82,4 +82,4 @@ fi
 #
 # - `sort_by(.speciesId)`: Sorts the resulting array of Pokémon objects alphabetically
 #   based on their `speciesId`.
-jq --rawfile wanted_list <(sort -u "$THREAT_GROUP_FILE") '($wanted_list | split("\n") | map(select(. != ""))) as $wanted | map(select(.speciesId as $id | $wanted | index($id))) | sort_by(.speciesId)' "$POKEMON_JSON_FILE"
+jq --rawfile wanted_list <(sort -u "$THREAT_GROUP_FILE") '($wanted_list | split("\n") | map(select(. != ""))) as $wanted | map(select(.speciesId as $id | $wanted | index($id))) | sort_by(.speciesId)' "$CUP_OVERRIDES_JSON_FILE"
