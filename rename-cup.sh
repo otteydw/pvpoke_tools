@@ -92,6 +92,7 @@ jq --tab \
         if .cup == $oldcup then
             .cup = $newcup
             | .title = $newtitle
+            | .meta = $newcup
         else
             .
         end
@@ -100,7 +101,7 @@ jq --tab \
 # --- 3. Update cup JSON ---
 cup_json="${root}/data/gamemaster/cups/${newname}.json"
 jq --arg cup "$newname" --arg title "$newpretty" \
-  '.cup = $cup | .title = $title' \
+  '.cup = $cup | .title = $title | .name = $cup' \
   "$cup_json" >"${cup_json}.tmp" && mv "${cup_json}.tmp" "$cup_json"
 
 echo "✅ Cup renamed successfully."
