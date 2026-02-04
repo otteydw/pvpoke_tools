@@ -74,6 +74,36 @@ def load_csv_moves(filepath: str, move_name_to_id_map: Dict[str, str]) -> Set[st
     return csv_moves_ids
 
 
+def check_shadow_pokemon(ranked_pokemon_ids: Set[str], all_pokemon_data: List[Dict[str, Any]], verbose: bool) -> bool:
+    """Checks for missing released shadow Pokémon from the rankings."""
+    print("\n--- Shadow Pokémon Check ---")
+    passed = True
+    missing_shadow_pokemon = []
+
+    pokemon_data_map = {p["speciesId"]: p for p in all_pokemon_data}
+
+    for species_id in ranked_pokemon_ids:
+        if species_id.endswith("_shadow"):
+            continue
+
+        shadow_species_id = f"{species_id}_shadow"
+        shadow_pokemon = pokemon_data_map.get(shadow_species_id)
+
+        if shadow_pokemon and shadow_pokemon.get("released", False):
+            if shadow_species_id not in ranked_pokemon_ids:
+                passed = False
+                missing_shadow_pokemon.append(shadow_species_id)
+
+    if not passed:
+        print("❌ ERROR: The following released shadow Pokémon are MISSING from the CSV rankings:")
+        for pokemon_id in sorted(missing_shadow_pokemon):
+            print(f"   - {pokemon_id}")
+    else:
+        print("✅ All relevant released shadow Pokémon are present in the CSV rankings.")
+
+    return passed
+
+
 def main():
     """Main function to parse arguments and run the sanity checks."""
     parser = argparse.ArgumentParser(description="Validate PvPoke CSV rankings against a cup JSON file.")
@@ -94,10 +124,12 @@ def main():
 
     gamemaster_json_path = os.path.join(pvpoke_src_root, "data", "gamemaster.json")
     moves_json_path = os.path.join(pvpoke_src_root, "data", "gamemaster", "moves.json")
+    pokemon_json_path = os.path.join(pvpoke_src_root, "data", "gamemaster", "pokemon.json")
 
     # Load data
     gamemaster_data = load_json_file(gamemaster_json_path)
     cup_data = load_json_file(args.cup_json_path)
+    all_pokemon_data = load_json_file(pokemon_json_path)
 
     # Create species_name_to_id_map from gamemaster
     species_name_to_id_map = {}
@@ -211,6 +243,10 @@ def main():
             print(f"   - {move_id}")
     else:
         print("✅ No forbidden moves are present in the CSV rankings.")
+
+    shadow_check_passed = check_shadow_pokemon(ranked_pokemon_ids, all_pokemon_data, args.verbose)
+    if not shadow_check_passed:
+        all_passed = False
 
     print("\n--- Summary ---")
     if all_passed:
