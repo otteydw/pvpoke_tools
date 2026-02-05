@@ -74,7 +74,9 @@ def load_csv_moves(filepath: str, move_name_to_id_map: Dict[str, str]) -> Set[st
     return csv_moves_ids
 
 
-def check_shadow_pokemon(ranked_pokemon_ids: Set[str], all_pokemon_data: List[Dict[str, Any]], verbose: bool) -> bool:
+def check_shadow_pokemon(
+    ranked_pokemon_ids: Set[str], all_pokemon_data: List[Dict[str, Any]], verbose: bool, shadow_check_mode: str
+) -> bool:
     """Checks for missing released shadow Pokémon from the rankings."""
     print("\n--- Shadow Pokémon Check ---")
     passed = True
@@ -95,7 +97,9 @@ def check_shadow_pokemon(ranked_pokemon_ids: Set[str], all_pokemon_data: List[Di
                 missing_shadow_pokemon.append(shadow_species_id)
 
     if not passed:
-        print("❌ ERROR: The following released shadow Pokémon are MISSING from the CSV rankings:")
+        prefix_emoji = "❌" if shadow_check_mode == "strict" else "⚠️"
+        prefix_text = "ERROR" if shadow_check_mode == "strict" else "WARNING"
+        print(f"{prefix_emoji} {prefix_text}: The following released shadow Pokémon are MISSING from the CSV rankings:")
         for pokemon_id in sorted(missing_shadow_pokemon):
             print(f"   - {pokemon_id}")
     else:
@@ -112,6 +116,15 @@ def main():
     )
     parser.add_argument("cup_json_path", help="Path to the cup JSON file (e.g., modifiedlove.json).")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output for debugging.")
+    parser.add_argument(
+        "--shadow-check-mode",
+        choices=["off", "warn", "strict"],
+        default="strict",
+        help=(
+            "Mode for shadow Pokémon check: 'off' (disabled), 'warn' (show warnings but don't fail), "
+            "or 'strict' (fail on discrepancies). Default is 'strict'."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -244,9 +257,12 @@ def main():
     else:
         print("✅ No forbidden moves are present in the CSV rankings.")
 
-    shadow_check_passed = check_shadow_pokemon(ranked_pokemon_ids, all_pokemon_data, args.verbose)
-    if not shadow_check_passed:
-        all_passed = False
+    if args.shadow_check_mode != "off":
+        shadow_check_passed = check_shadow_pokemon(
+            ranked_pokemon_ids, all_pokemon_data, args.verbose, args.shadow_check_mode
+        )
+        if args.shadow_check_mode == "strict" and not shadow_check_passed:
+            all_passed = False
 
     print("\n--- Summary ---")
     if all_passed:
