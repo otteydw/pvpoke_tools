@@ -75,7 +75,7 @@ def load_csv_moves(filepath: str, move_name_to_id_map: Dict[str, str]) -> Set[st
 
 
 def check_shadow_pokemon(
-    ranked_pokemon_ids: Set[str], all_pokemon_data: List[Dict[str, Any]], verbose: bool, shadow_check_mode: str
+    ranked_pokemon_ids: Set[str], all_pokemon_data: List[Dict[str, Any]], shadow_check_mode: str
 ) -> bool:
     """Checks for missing released shadow Pokémon from the rankings."""
     print("\n--- Shadow Pokémon Check ---")
@@ -258,9 +258,7 @@ def main():
         print("✅ No forbidden moves are present in the CSV rankings.")
 
     if args.shadow_check_mode != "off":
-        shadow_check_passed = check_shadow_pokemon(
-            ranked_pokemon_ids, all_pokemon_data, args.verbose, args.shadow_check_mode
-        )
+        shadow_check_passed = check_shadow_pokemon(ranked_pokemon_ids, all_pokemon_data, args.shadow_check_mode)
         if args.shadow_check_mode == "strict" and not shadow_check_passed:
             all_passed = False
 
