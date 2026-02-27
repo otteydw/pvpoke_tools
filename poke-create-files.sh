@@ -72,8 +72,15 @@ date=$(date +"%Y%m%d-%H:%M:%S")
 # ---------------------------------------------
 # Step 1: Gather meta name and title from the user
 # ---------------------------------------------
-echo -n "Enter the name of the meta: "
-read -r name # internal codename (usually lowercase)
+while true; do
+  echo -n "Enter the name of the meta (lowercase alphanumeric only, start with a letter): "
+  read -r name # internal codename
+  if [[ $name =~ ^[a-z][a-z0-9]*$ ]]; then
+    break
+  else
+    echo "Error: Name '$name' is invalid. It must be lowercase alphanumeric, start with a letter, and contain no underscores or hyphens."
+  fi
+done
 sleep 1s
 echo -n "Enter the title of the meta: "
 read -r title # "pretty" name, typically capitalized
