@@ -62,6 +62,12 @@ fi
 oldname="$1"
 newname="$2"
 
+# Validate new name
+if [[ ! $newname =~ ^[a-z][a-z0-9]*$ ]]; then
+  echo "Error: New name '$newname' is invalid. It must be lowercase alphanumeric, start with a letter, and contain no underscores or hyphens."
+  exit 1
+fi
+
 # Default pretty names: capitalize first letter
 # shellcheck disable=SC2086
 oldpretty_default="$(tr '[:lower:]' '[:upper:]' <<<${oldname:0:1})${oldname:1}"
