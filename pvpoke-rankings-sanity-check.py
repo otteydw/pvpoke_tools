@@ -44,6 +44,16 @@ def load_csv_pokemon_ids(filepath: str, species_name_to_id_map: Dict[str, str]) 
     return correlated_ids
 
 
+def clean_move_name(name: str) -> str:
+    """Cleans a move name by removing PvPoke-specific symbols.
+
+    This removes:
+    - Trailing asterisks (*) indicating legacy/Elite TM moves.
+    - HTML dagger tags (<sup>†</sup>) indicating moves unobtainable via TM.
+    """
+    return name.replace("<sup>†</sup>", "").rstrip("*")
+
+
 def load_csv_moves(filepath: str, move_name_to_id_map: Dict[str, str]) -> Set[str]:
     """Loads moves from a CSV file and converts them to gamemaster moveIds.
 
@@ -62,7 +72,9 @@ def load_csv_moves(filepath: str, move_name_to_id_map: Dict[str, str]) -> Set[st
     csv_moves_ids: Set[str] = set()
     for col in move_columns:
         for csv_move_name in df[col].dropna().astype(str).tolist():
-            move_id = move_name_to_id_map.get(csv_move_name)
+            # Clean move name of special PvPoke symbols (* and <sup>†</sup>)
+            cleaned_name = clean_move_name(csv_move_name)
+            move_id = move_name_to_id_map.get(cleaned_name)
             if move_id:
                 csv_moves_ids.add(move_id)
             else:
