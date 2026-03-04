@@ -82,7 +82,7 @@ def main():
         print(
             f"❌ ERROR: The following Pokémon speciesIds from the cup JSON file "
             f"'{args.cup_json_path}' are NOT found in the gamemaster JSON file "
-            f"'{args.gamemaster_json_path}':"
+            f"'{gamemaster_json_path}':"
         )
         for species_id in sorted(list(unknown_species)):
             print(f"   - {species_id}")
