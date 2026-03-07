@@ -68,18 +68,27 @@ fi
 
 # --- Core Logic ---
 
-# Use jq to filter the Pokémon data.
-#
-# - `--rawfile wanted_list <(sort -u "$THREAT_GROUP_FILE")`: Reads the sorted, unique lines from the
-#   threat group file into the $wanted_list variable. Using process substitution ` <(command)` allows
-#   us to preprocess the file before jq sees it. `sort -u` sorts the names and removes duplicates.
-#
-# - `($wanted_list | split("\n") | map(select(. != ""))) as $wanted`: Creates a clean JSON
-#   array of Pokémon names to filter by.
-#
-# - `map(select(.speciesId as $id | $wanted | index($id)))`: Iterates through the input
-#   JSON and selects any Pokémon whose `speciesId` is present in the `$wanted` array.
-#
-# - `sort_by(.speciesId)`: Sorts the resulting array of Pokémon objects alphabetically
-#   based on their `speciesId`.
-jq --rawfile wanted_list <(sort -u "$THREAT_GROUP_FILE") '($wanted_list | split("\n") | map(select(. != ""))) as $wanted | map(select(.speciesId as $id | $wanted | index($id))) | sort_by(.speciesId)' "$CUP_OVERRIDES_JSON_FILE"
+# 1. Get unique, non-empty IDs from the threat group file
+WANTED_IDS=$(sort -u "$THREAT_GROUP_FILE" | sed '/^$/d')
+
+# 2. Get all available speciesIds from the overrides JSON
+AVAILABLE_IDS=$(jq -r '.[].speciesId' "$CUP_OVERRIDES_JSON_FILE" | sort)
+
+# 3. Check for missing IDs using 'comm'
+# (comm -23 returns lines only in the first file, i.e., things wanted but not available)
+MISSING_IDS=$(comm -23 <(echo "$WANTED_IDS") <(echo "$AVAILABLE_IDS"))
+
+if [ -n "$MISSING_IDS" ]; then
+  echo "❌ ERROR: The following Pokémon from '$THREAT_GROUP_FILE' were not found in '$CUP_OVERRIDES_JSON_FILE':" >&2
+  echo "$MISSING_IDS" | while read -r id; do
+    echo "   - $id" >&2
+  done
+  exit 1
+fi
+
+# 4. If all exist, proceed with the original jq filtering
+jq --rawfile wanted_list <(echo "$WANTED_IDS") '
+  ($wanted_list | split("\n") | map(select(. != ""))) as $wanted |
+  map(select(.speciesId as $id | $wanted | index($id))) |
+  sort_by(.speciesId)
+' "$CUP_OVERRIDES_JSON_FILE"
