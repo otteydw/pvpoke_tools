@@ -241,7 +241,7 @@ def _validate_groups(
         base_path=group_base_path,
         gamemaster_species_ids=gamemaster_species_ids,
         gamemaster_all_move_ids=gamemaster_all_move_ids,
-        required_species=required_species,
+        required_species=set(),
         forbidden_species=forbidden_species,
         forbidden_moves=forbidden_moves,
         allowed_pokemon_ids=override_pokemon_ids,
