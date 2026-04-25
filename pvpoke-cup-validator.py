@@ -30,8 +30,12 @@ def main():
             "or 'strict' (fail on discrepancies). Default is 'strict'."
         ),
     )
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output.")
 
     args = parser.parse_args()
+
+    if args.verbose:
+        print(f"DEBUG: Verbose mode is ON. Validating {args.cup_json_path}")
 
     pvpoke_src_root = os.environ.get("PVPOKE_SRC_ROOT")
     if not pvpoke_src_root:
@@ -87,7 +91,15 @@ def main():
 
     # Shadow Inclusion Check
     if args.shadow_check_mode != "off":
-        print("\n--- Shadow Inclusion Check ---")
+        if args.verbose:
+            print("\n--- Shadow Inclusion Check (Verbose) ---")
+            print(f"Checking {len(cup_included_species_ids)} explicit species IDs for shadow counterparts...")
+        else:
+            print("\n--- Shadow Inclusion Check ---")
+
+        if not cup_included_species_ids and args.verbose:
+            print("  (No species IDs found in 'include' rules; skipping individual checks.)")
+
         missing_shadows = []
         for species_id in sorted(list(cup_included_species_ids)):
             if species_id.endswith("_shadow"):
@@ -95,6 +107,16 @@ def main():
 
             shadow_id = f"{species_id}_shadow"
             shadow_pokemon = pokemon_data_map.get(shadow_id)
+
+            if args.verbose:
+                if not shadow_pokemon:
+                    print(f"  - {species_id}: No shadow version in gamemaster.")
+                elif not shadow_pokemon.get("released", False):
+                    print(f"  - {species_id}: Shadow version ({shadow_id}) exists but is NOT released.")
+                elif shadow_id in cup_included_species_ids:
+                    print(f"  - {species_id}: Released shadow version ({shadow_id}) IS already included.")
+                else:
+                    print(f"  - {species_id}: Released shadow version ({shadow_id}) is MISSING.")
 
             if shadow_pokemon and shadow_pokemon.get("released", False):
                 if shadow_id not in cup_included_species_ids:
