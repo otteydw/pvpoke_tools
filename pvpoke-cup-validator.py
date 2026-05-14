@@ -90,7 +90,17 @@ def main():
         print(f"✅ All Pokémon speciesIds mentioned in '{args.cup_json_path}' are found in the gamemaster.")
 
     # Shadow Inclusion Check
-    if args.shadow_check_mode != "off":
+    shadows_excluded_via_tag = False
+    for rule in cup_data.get("exclude", []):
+        if isinstance(rule, dict) and rule.get("filterType") == "tag" and "values" in rule:
+            if "shadow" in rule["values"]:
+                shadows_excluded_via_tag = True
+                break
+
+    if shadows_excluded_via_tag and args.shadow_check_mode != "off":
+        print("\n--- Shadow Inclusion Check ---")
+        print("✅ Shadow Pokémon are explicitly excluded via tags in this cup. Skipping shadow inclusion check.")
+    elif args.shadow_check_mode != "off":
         if args.verbose:
             print("\n--- Shadow Inclusion Check (Verbose) ---")
             print(f"Checking {len(cup_included_species_ids)} explicit species IDs for shadow counterparts...")

@@ -269,7 +269,18 @@ def main():
     else:
         print("✅ No forbidden moves are present in the CSV rankings.")
 
-    if args.shadow_check_mode != "off":
+    # Shadow Inclusion Check
+    shadows_excluded_via_tag = False
+    for rule in cup_data.get("exclude", []):
+        if isinstance(rule, dict) and rule.get("filterType") == "tag" and "values" in rule:
+            if "shadow" in rule["values"]:
+                shadows_excluded_via_tag = True
+                break
+
+    if shadows_excluded_via_tag and args.shadow_check_mode != "off":
+        print("\n--- Shadow Pokémon Check ---")
+        print("✅ Shadow Pokémon are explicitly excluded via tags in this cup. Skipping shadow check.")
+    elif args.shadow_check_mode != "off":
         shadow_check_passed = check_shadow_pokemon(ranked_pokemon_ids, all_pokemon_data, args.shadow_check_mode)
         if args.shadow_check_mode == "strict" and not shadow_check_passed:
             all_passed = False
