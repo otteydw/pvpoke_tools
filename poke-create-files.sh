@@ -8,13 +8,16 @@ set -euo pipefail
 
 # Usage function
 usage() {
-  echo "Usage: $(basename "$0") [--json-file <filename>]"
+  echo "Usage: $(basename "$0") [options]"
   echo "       $(basename "$0") [-h|--help]"
   echo ""
   echo "This script generates the files required to build a custom PvPoke meta."
   echo "Options:"
   echo "  --json-file <filename>  Provide a JSON file containing the meta structure."
   echo "                          If not provided, you will be prompted for direct input."
+  echo "  --name <name>           The internal codename for the meta (lowercase alphanumeric)."
+  echo "  --title <title>         The display title for the meta (quote if it contains spaces)."
+  echo "  --cp <cp>               The CP limit for the meta (e.g., 500, 1500, 2500, 10000)."
   echo "  -h, --help              Display this help message and exit."
   echo ""
   echo "Environment Variables:"
@@ -37,16 +40,49 @@ command -v jq >/dev/null 2>&1 || {
 }
 
 JSON_FILE=""
+name=""
+title=""
+cp=""
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
   --json-file)
-    if [[ -n $2 && ! $2 =~ ^- ]]; then
+    if [[ -n ${2:-} && ! $2 =~ ^- ]]; then
       JSON_FILE="$2"
       shift 2
     else
       echo "Error: --json-file requires a filename argument." >&2
+      usage
+      exit 1
+    fi
+    ;;
+  --name)
+    if [[ -n ${2:-} && ! $2 =~ ^- ]]; then
+      name="$2"
+      shift 2
+    else
+      echo "Error: --name requires an argument." >&2
+      usage
+      exit 1
+    fi
+    ;;
+  --title)
+    if [[ -n ${2:-} && ! $2 =~ ^- ]]; then
+      title="$2"
+      shift 2
+    else
+      echo "Error: --title requires an argument." >&2
+      usage
+      exit 1
+    fi
+    ;;
+  --cp)
+    if [[ -n ${2:-} && ! $2 =~ ^- ]]; then
+      cp="$2"
+      shift 2
+    else
+      echo "Error: --cp requires an argument." >&2
       usage
       exit 1
     fi
@@ -72,18 +108,29 @@ date=$(date +"%Y%m%d-%H:%M:%S")
 # ---------------------------------------------
 # Step 1: Gather meta name and title from the user
 # ---------------------------------------------
-while true; do
-  echo -n "Enter the name of the meta (lowercase alphanumeric only, start with a letter): "
-  read -r name # internal codename
-  if [[ $name =~ ^[a-z][a-z0-9]*$ ]]; then
-    break
-  else
-    echo "Error: Name '$name' is invalid. It must be lowercase alphanumeric, start with a letter, and contain no underscores or hyphens."
+if [[ -z $name ]]; then
+  while true; do
+    echo -n "Enter the name of the meta (lowercase alphanumeric only, start with a letter): "
+    read -r name # internal codename
+    if [[ $name =~ ^[a-z][a-z0-9]*$ ]]; then
+      break
+    else
+      echo "Error: Name '$name' is invalid. It must be lowercase alphanumeric, start with a letter, and contain no underscores or hyphens."
+    fi
+  done
+else
+  # Validate provided name
+  if [[ ! $name =~ ^[a-z][a-z0-9]*$ ]]; then
+    echo "Error: Provided name '$name' is invalid. It must be lowercase alphanumeric, start with a letter, and contain no underscores or hyphens." >&2
+    exit 1
   fi
-done
+fi
+
 sleep 1s
-echo -n "Enter the title of the meta: "
-read -r title # "pretty" name, typically capitalized
+if [[ -z $title ]]; then
+  echo -n "Enter the title of the meta: "
+  read -r title # "pretty" name, typically capitalized
+fi
 sleep 1s
 echo "I am now creating the Gamemaster Cup File $name.json for you ..."
 sleep 2s
@@ -189,8 +236,10 @@ sleep 2s
 # ---------------------------------------------
 # Step 8: Create empty Moveset Override JSON
 # ---------------------------------------------
-echo -n "Enter the CP (500, 1500, 2500, 10000) for this cup: "
-read -r cp
+if [[ -z $cp ]]; then
+  echo -n "Enter the CP (500, 1500, 2500, 10000) for this cup: "
+  read -r cp
+fi
 mkdir -p "${webrt}"/data/overrides/"${name}"
 touch "${webrt}"/data/overrides/"${name}"/"${cp}".json
 echo "[]" >>"${webrt}"/data/overrides/"${name}"/"${cp}".json
