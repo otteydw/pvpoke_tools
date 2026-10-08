@@ -1,0 +1,16 @@
+.agents/skills/pvpoke-master-update/SKILL.md
+  h_16148b258796cf 1-150
+.agents/skills/pvpoke-season-preview/SKILL.md
+  h_16148b258796cf 1-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "897615e908e80a5cf43afc95b1260d49792455d7",
+  "prompts": {},
+  "humans": {
+    "h_16148b258796cf": {
+      "author": "Daniel W. Ottey <dan@bluefrogs.us>"
+    }
+  }
+}
