@@ -52,6 +52,8 @@ def get_pokemon_and_moves_from_data_file(data: Any) -> tuple[Set[str], Set[str]]
     move_ids: Set[str] = set()
 
     for entry in data:
+        if not isinstance(entry, dict):
+            continue
         species_id = entry.get("speciesId")
         if species_id:
             pokemon_ids.add(species_id)
@@ -77,7 +79,7 @@ def _validate_data_file(
     forbidden_moves: Set[str],
     allowed_pokemon_ids: Optional[Set[str]] = None,
 ) -> bool:
-    """Validates a single data file (override or ranking) against all rules.
+    """Validates a single data file (override, ranking, or group) against all rules.
 
     Returns True if the file is valid, False otherwise.
     """
@@ -85,7 +87,15 @@ def _validate_data_file(
     print(f"  Processing {display_path}")
 
     data = load_json_file(file_path)
+    if not isinstance(data, list):
+        print(f"    ❌ ERROR: Expected a list of Pokémon in {display_path}")
+        return False
+
     pokemon_ids, move_ids = get_pokemon_and_moves_from_data_file(data)
+
+    if not pokemon_ids:
+        print(f"    ❌ ERROR: No Pokémon found in {display_path}")
+        return False
 
     # Required species check
     if required_species:
@@ -148,6 +158,7 @@ def _validate_overrides(
     required_species: Set[str],
     forbidden_species: Set[str],
     forbidden_moves: Set[str],
+    base_path: Optional[str] = None,
 ) -> bool:
     """Validates all override files for a given cup.
 
@@ -164,7 +175,7 @@ def _validate_overrides(
 
     validator = partial(
         _validate_data_file,
-        base_path=overrides_base_path,
+        base_path=base_path or overrides_base_path,
         gamemaster_species_ids=gamemaster_species_ids,
         gamemaster_all_move_ids=gamemaster_all_move_ids,
         required_species=required_species,
@@ -187,6 +198,7 @@ def _validate_rankings(
     required_species: Set[str],
     forbidden_species: Set[str],
     forbidden_moves: Set[str],
+    base_path: Optional[str] = None,
 ) -> bool:
     """Validates all ranking files for a given cup.
 
@@ -197,7 +209,7 @@ def _validate_rankings(
 
     validator = partial(
         _validate_data_file,
-        base_path=rankings_base_path,
+        base_path=base_path or rankings_base_path,
         gamemaster_species_ids=gamemaster_species_ids,
         gamemaster_all_move_ids=gamemaster_all_move_ids,
         required_species=required_species,
@@ -224,6 +236,7 @@ def _validate_groups(
     forbidden_species: Set[str],
     forbidden_moves: Set[str],
     override_pokemon_ids: Set[str],
+    base_path: Optional[str] = None,
 ) -> bool:
     """Validates all group files for a given cup.
 
@@ -235,10 +248,14 @@ def _validate_groups(
         return True  # No groups to validate
 
     group_files = [os.path.join(group_base_path, f) for f in os.listdir(group_base_path) if f.endswith(".json")]
+    if not group_files:
+        rel_group_dir = os.path.relpath(group_base_path, base_path) if base_path else group_base_path
+        print(f"    ❌ ERROR: No group JSON files found in {rel_group_dir}")
+        return False
 
     validator = partial(
         _validate_data_file,
-        base_path=group_base_path,
+        base_path=base_path or group_base_path,
         gamemaster_species_ids=gamemaster_species_ids,
         gamemaster_all_move_ids=gamemaster_all_move_ids,
         required_species=set(),
@@ -260,6 +277,7 @@ def _validate_file_structure(
     rankings_base_path: str,
     group_base_path: str,
     cup_shortname: str,
+    base_path: Optional[str] = None,
 ) -> bool:
     """Validates the file structure of the cup.
 
@@ -277,13 +295,15 @@ def _validate_file_structure(
     # Validate override file
     expected_override_file = os.path.join(overrides_base_path, f"{league}.json")
     if not os.path.exists(expected_override_file):
-        print(f"    ❌ ERROR: Expected override file not found at {expected_override_file}")
+        rel_override = os.path.relpath(expected_override_file, base_path) if base_path else expected_override_file
+        print(f"    ❌ ERROR: Expected override file not found at {rel_override}")
         all_valid = False
 
     # Validate group file
     expected_group_file = os.path.join(group_base_path, f"{cup_shortname}.json")
     if not os.path.exists(expected_group_file):
-        print(f"    ❌ ERROR: Expected group file not found at {expected_group_file}")
+        rel_group = os.path.relpath(expected_group_file, base_path) if base_path else expected_group_file
+        print(f"    ❌ ERROR: Expected group file not found at {rel_group}")
         all_valid = False
 
     # Validate ranking files
@@ -314,7 +334,8 @@ def _validate_file_structure(
     for category in found_ranking_categories.intersection(expected_ranking_categories):
         expected_ranking_file = os.path.join(rankings_base_path, category, f"rankings-{league}.json")
         if not os.path.exists(expected_ranking_file):
-            print(f"    ❌ ERROR: Expected ranking file not found at {expected_ranking_file}")
+            rel_ranking = os.path.relpath(expected_ranking_file, base_path) if base_path else expected_ranking_file
+            print(f"    ❌ ERROR: Expected ranking file not found at {rel_ranking}")
             all_valid = False
 
     return all_valid
@@ -369,12 +390,15 @@ def _run_validation_process(args: argparse.Namespace, pvpoke_src_root: str) -> b
             print(f"Error: Cup definition file not found at {cup_file_path}")
             return False
 
+        cup_base_path = os.path.join(temp_dir, cup_shortname)
+
         structure_valid = _validate_file_structure(
             cup_file_path,
             overrides_base_path,
             rankings_base_path,
             group_base_path,
             cup_shortname,
+            base_path=cup_base_path,
         )
 
         gamemaster_pokemon_data = load_json_file(gamemaster_pokemon_path)
@@ -398,6 +422,7 @@ def _run_validation_process(args: argparse.Namespace, pvpoke_src_root: str) -> b
             required_species,
             forbidden_species,
             forbidden_moves,
+            base_path=cup_base_path,
         )
 
         rankings_valid = _validate_rankings(
@@ -408,6 +433,7 @@ def _run_validation_process(args: argparse.Namespace, pvpoke_src_root: str) -> b
             required_species,
             forbidden_species,
             forbidden_moves,
+            base_path=cup_base_path,
         )
 
         # Extract pokemon IDs from the primary override file for subset validation
@@ -427,6 +453,7 @@ def _run_validation_process(args: argparse.Namespace, pvpoke_src_root: str) -> b
             forbidden_species,
             forbidden_moves,
             override_pokemon_ids,
+            base_path=cup_base_path,
         )
 
         return structure_valid and overrides_valid and rankings_valid and groups_valid
