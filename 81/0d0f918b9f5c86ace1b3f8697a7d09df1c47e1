@@ -1,0 +1,14 @@
+pvpoke-zip-validator.py
+  h_16148b258796cf 55-56,82,90-93,96-99,248-250
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "810d0f918b9f5c86ace1b3f8697a7d09df1c47e1",
+  "prompts": {},
+  "humans": {
+    "h_16148b258796cf": {
+      "author": "Daniel W. Ottey <dan@bluefrogs.us>"
+    }
+  }
+}
