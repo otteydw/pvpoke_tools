@@ -52,6 +52,8 @@ def get_pokemon_and_moves_from_data_file(data: Any) -> tuple[Set[str], Set[str]]
     move_ids: Set[str] = set()
 
     for entry in data:
+        if not isinstance(entry, dict):
+            continue
         species_id = entry.get("speciesId")
         if species_id:
             pokemon_ids.add(species_id)
@@ -77,7 +79,7 @@ def _validate_data_file(
     forbidden_moves: Set[str],
     allowed_pokemon_ids: Optional[Set[str]] = None,
 ) -> bool:
-    """Validates a single data file (override or ranking) against all rules.
+    """Validates a single data file (override, ranking, or group) against all rules.
 
     Returns True if the file is valid, False otherwise.
     """
@@ -85,7 +87,15 @@ def _validate_data_file(
     print(f"  Processing {display_path}")
 
     data = load_json_file(file_path)
+    if not isinstance(data, list):
+        print(f"    ❌ ERROR: Expected a list of Pokémon in {display_path}")
+        return False
+
     pokemon_ids, move_ids = get_pokemon_and_moves_from_data_file(data)
+
+    if not pokemon_ids:
+        print(f"    ❌ ERROR: No Pokémon found in {display_path}")
+        return False
 
     # Required species check
     if required_species:
@@ -235,6 +245,9 @@ def _validate_groups(
         return True  # No groups to validate
 
     group_files = [os.path.join(group_base_path, f) for f in os.listdir(group_base_path) if f.endswith(".json")]
+    if not group_files:
+        print(f"    ❌ ERROR: No group JSON files found in {group_base_path}")
+        return False
 
     validator = partial(
         _validate_data_file,
